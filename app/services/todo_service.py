@@ -4,7 +4,6 @@ import logging
 
 from app.schemas.todo import TodoCreate, TodoResponse, TodoUpdate
 from app.exceptions.todo import TodoNotFoundError
-from app.repositories.todo_repository import TodoRepository
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,7 @@ class TodoService:
     """
     Service responsible for Todo business logic.
     """
-    def __init__(self, repository:TodoRepository):
+    def __init__(self, repository):
         self.repository = repository
 
     def create(self, todo: TodoCreate) -> TodoResponse:

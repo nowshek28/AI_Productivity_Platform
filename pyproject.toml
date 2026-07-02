@@ -1,0 +1,11 @@
+[project]
+name = "todo-api"
+version = "2.0.0"
+description = "A production-inspired REST API for managing todo items, built with FastAPI and PostgreSQL on AWS RDS."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+
+[tool.alembic]
+script_location = "migrations"

@@ -11,11 +11,13 @@ def test_root(client):
     """
     Test the root endpoint.
     """
+    from app.core.config import settings
+
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "ToDo API"
-    assert data["version"] == "1.0.0"
+    assert data["name"] == settings.APP_NAME
+    assert data["version"] == settings.APP_VERSION
     assert data["status"] == "running"
     assert data["docs"] == "/docs"
 
@@ -55,7 +57,7 @@ def test_title_too_short(client):
     assert response.status_code == 422  # Unprocessable Entity
     data = response.json()
     assert data["detail"][0]["loc"] == ["body", "title"]
-    assert data["detail"][0]["msg"] == "ensure this value has at least 3 characters"
+    assert data["detail"][0]["msg"] == "String should have at least 3 characters"
 
 def test_title_too_long(client):
     """
@@ -71,7 +73,7 @@ def test_title_too_long(client):
     assert response.status_code == 422  # Unprocessable Entity
     data = response.json()
     assert data["detail"][0]["loc"] == ["body", "title"]
-    assert data["detail"][0]["msg"] == "ensure this value has at most 100 characters"
+    assert data["detail"][0]["msg"] == "String should have at most 100 characters"
 
 def test_missing_title(client):
     """
@@ -86,7 +88,7 @@ def test_missing_title(client):
     assert response.status_code == 422  # Unprocessable Entity
     data = response.json()
     assert data["detail"][0]["loc"] == ["body", "title"]
-    assert data["detail"][0]["msg"] == "field required"
+    assert data["detail"][0]["msg"] == "Field required"
 
 def test_description_too_long(client):
     """
@@ -102,7 +104,7 @@ def test_description_too_long(client):
     assert response.status_code == 422  # Unprocessable Entity
     data = response.json()
     assert data["detail"][0]["loc"] == ["body", "description"]
-    assert data["detail"][0]["msg"] == "ensure this value has at most 500 characters"
+    assert data["detail"][0]["msg"] == "String should have at most 500 characters"
 
 
 #####################################################################################  
@@ -160,7 +162,7 @@ def test_get_todo_invalid_uuid(client):
     assert response.status_code == 422
     data = response.json()
     assert data["detail"][0]["loc"] == ["path", "todo_id"]
-    assert data["detail"][0]["msg"] == "value is not a valid uuid"
+    assert "Input should be a valid UUID" in data["detail"][0]["msg"]
 
 def test_get_todo_not_found(client):
     """
@@ -170,7 +172,7 @@ def test_get_todo_not_found(client):
     response = client.get(f"/api/v1/todos/{non_existent_id}")
     assert response.status_code == 404
     data = response.json()
-    assert data["detail"] == "Todo not found"
+    assert data["detail"] == f"Todo with id '{non_existent_id}' was not found."
 
 #####################################################################################  
 
@@ -218,7 +220,7 @@ def test_update_todo_not_found(client):
     response = client.put(f"/api/v1/todos/{non_existent_id}", json=updated_data)
     assert response.status_code == 404
     data = response.json()
-    assert data["detail"] == "Todo not found"
+    assert data["detail"] == f"Todo with id '{non_existent_id}' was not found."
 
 
 #####################################################################################  
@@ -254,5 +256,5 @@ def test_delete_todo_not_found(client):
     response = client.delete(f"/api/v1/todos/{non_existent_id}")
     assert response.status_code == 404
     data = response.json()
-    assert data["detail"] == "Todo not found"
+    assert data["detail"] == f"Todo with id '{non_existent_id}' was not found."
     

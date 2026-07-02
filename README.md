@@ -4,6 +4,17 @@ A production-inspired REST API for managing todo items, built with **FastAPI** a
 
 ---
 
+## Version History
+
+| Version | Storage Backend | Description |
+|---|---|---|
+| **v1.0** | JSON file | Local JSON file persistence. Simple, zero-setup storage. |
+| **v2.0** | PostgreSQL on AWS RDS | Production-grade relational database. SQLAlchemy ORM, connection pooling, cloud-hosted on Amazon RDS. Alembic migrations for safe schema changes. Isolated SQLite test database. |
+
+> **Current version: v2.0 — PostgreSQL AWS Database**
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -12,14 +23,14 @@ A production-inspired REST API for managing todo items, built with **FastAPI** a
 - [API Endpoints](#api-endpoints)
 - [Schemas](#schemas)
 - [Getting Started](#getting-started)
+- [Database Migrations](#database-migrations)
 - [Running Tests](#running-tests)
-- [Configuration](#configuration)
 
 ---
 
 ## Overview
 
-This API provides full **CRUD** (Create, Read, Update, Delete) operations for todo items. Data is persisted to a local JSON file, making it easy to run without any database setup. The codebase is intentionally structured to mirror real-world production patterns — layered concerns, dependency injection, custom exception handling, request logging, and a comprehensive test suite.
+This API provides full **CRUD** (Create, Read, Update, Delete) operations for todo items. Data is persisted in a **PostgreSQL database hosted on AWS RDS**, replacing the original JSON file storage. The codebase is intentionally structured to mirror real-world production patterns — layered concerns, dependency injection, custom exception handling, request logging, and a comprehensive test suite.
 
 ![FastAPI Production](FastAPI_production.PNG)
 
@@ -31,6 +42,10 @@ This API provides full **CRUD** (Create, Read, Update, Delete) operations for to
 | Uvicorn 0.49 | ASGI server |
 | Pydantic v2 | Data validation and serialization |
 | pydantic-settings | Environment configuration |
+| SQLAlchemy | ORM and database session management |
+| psycopg2-binary | PostgreSQL driver |
+| AWS RDS (PostgreSQL) | Cloud-hosted relational database |
+| Alembic | Database migration tool |
 | Pytest 9.1 | Testing framework |
 | HTTPX | HTTP client for testing |
 
@@ -40,47 +55,57 @@ This API provides full **CRUD** (Create, Read, Update, Delete) operations for to
 
 ```
 app/
-├── main.py                      # FastAPI app factory and entry point
+├── main.py                           # FastAPI app factory, startup event (creates DB tables)
 │
 ├── api/
 │   └── v1/
-│       ├── router.py            # Combines all v1 route groups
+│       ├── router.py                 # Combines all v1 route groups
 │       └── routes/
-│           ├── health.py        # GET /api/v1/health
-│           └── todos.py         # Todo CRUD endpoints
+│           ├── health.py             # GET /api/v1/health
+│           └── todos.py              # Todo CRUD endpoints
 │
 ├── core/
-│   ├── config.py                # Settings loaded from .env (pydantic-settings)
-│   ├── dependencies.py          # FastAPI dependency injection chain
-│   ├── exception_handlers.py    # Maps custom exceptions to HTTP responses
-│   ├── logging.py               # Logging configuration
-│   └── middleware.py            # Request/response timing and logging
+│   ├── config.py                     # Settings loaded from .env (pydantic-settings)
+│   ├── dependencies.py               # FastAPI dependency injection chain
+│   ├── exception_handlers.py         # Maps custom exceptions to HTTP responses
+│   ├── logging.py                    # Logging configuration
+│   └── middleware.py                 # Request/response timing and logging
+│
+├── database/
+│   ├── base.py                       # SQLAlchemy DeclarativeBase
+│   ├── database.py                   # Engine, SessionLocal, get_db() dependency
+│   └── models.py                     # TodoModel ORM table definition
 │
 ├── schemas/
-│   └── todo.py                  # Pydantic models (request/response shapes)
+│   └── todo.py                       # Pydantic models (request/response shapes)
 │
 ├── services/
-│   └── todo_service.py          # Business logic (UUID, timestamps, validation)
+│   └── todo_service.py               # Business logic (UUID, timestamps, validation)
 │
 ├── repositories/
-│   └── todo_repository.py       # Data access layer (CRUD against storage)
+│   ├── postgres_todo_repository.py   # PostgreSQL CRUD via SQLAlchemy
+│   └── json_todo_repository.py       # Legacy JSON CRUD (retained for reference)
 │
 ├── storage/
-│   └── json_storage.py          # JSON file read/write implementation
+│   └── json_storage.py               # Legacy JSON file I/O (retained for reference)
 │
 ├── exceptions/
-│   └── todo.py                  # TodoNotFoundError custom exception
+│   └── todo.py                       # TodoNotFoundError custom exception
 │
-├── data/
-│   └── todo.json                # Persisted todo data
+├── tests/
+│   ├── conftest.py                   # Pytest fixtures (SQLite in-memory test DB)
+│   ├── fakes.py                      # FakeTodoRepository for unit tests
+│   ├── test_api.py                   # API integration tests (SQLite, isolated)
+│   ├── test_service.py               # Service unit tests (in-memory fake)
+│   ├── test_repository.py            # JSON repository unit tests
+│   └── test_storage.py               # JSON storage tests
 │
-└── tests/
-    ├── conftest.py              # Pytest fixtures
-    ├── fakes.py                 # FakeTodoRepository for isolated unit tests
-    ├── test_api.py              # API endpoint (integration) tests
-    ├── test_service.py          # Service layer unit tests
-    ├── test_repository.py       # Repository layer unit tests
-    └── test_storage.py          # Storage layer tests
+migrations/
+├── env.py                            # Alembic environment (reads DATABASE_URL from .env)
+├── script.py.mako                    # Migration file template
+└── versions/
+    └── 20260703_0637_fabbfc95d6f4_initial_schema.py  # Baseline revision
+alembic.ini                           # Alembic configuration
 ```
 
 ---
@@ -99,13 +124,21 @@ HTTP Request
   Services        — Business logic: generate IDs, set timestamps, enforce rules
      │
      ▼
-  Repositories    — Data access: read/write Pydantic models via storage
+  Repositories    — Data access: CRUD operations via SQLAlchemy ORM
      │
      ▼
-  Storage         — I/O implementation: reads and writes the JSON file
+  Database        — PostgreSQL on AWS RDS (managed via SQLAlchemy sessions)
 ```
 
-**Dependency injection** wires these layers together at runtime via FastAPI's `Depends()` system, defined in `core/dependencies.py`. This makes each layer independently testable — the test suite swaps the real repository for a `FakeTodoRepository` backed by an in-memory list.
+**Dependency injection** wires these layers together at runtime via FastAPI's `Depends()` system, defined in `core/dependencies.py`:
+
+```
+get_service
+  └── get_postgres_repository
+        └── get_db  →  SessionLocal()  →  AWS RDS PostgreSQL
+```
+
+This makes each layer independently testable — integration tests override `get_db` with a test session that cleans up after itself, while unit tests swap the repository entirely for an in-memory `FakeTodoRepository`.
 
 ---
 
@@ -190,6 +223,7 @@ All fields are optional — send only the fields you want to change.
 ### Prerequisites
 
 - Python 3.11+
+- A PostgreSQL database (local or cloud — e.g. AWS RDS)
 
 ### Installation
 
@@ -209,21 +243,25 @@ pip install -r requirements.txt
 
 ### Configuration
 
-Copy `.env.example` to `.env` and adjust as needed:
+Create a `.env` file in the project root:
 
 ```env
 APP_NAME=ToDo API
-APP_VERSION=1.0.0
+APP_VERSION=2.0.0
 DEBUG=True
 DATA_FILE=app/data/todo.json
+DATABASE_URL=postgresql+psycopg2://<user>:<password>@<host>:<port>/<database>
 ```
 
-| Variable | Description | Default |
-|---|---|---|
-| `APP_NAME` | Name shown in API metadata | `ToDo API` |
-| `APP_VERSION` | Version shown in API metadata | `1.0.0` |
-| `DEBUG` | Enables debug mode | `True` |
-| `DATA_FILE` | Path to the JSON data file | `app/data/todo.json` |
+| Variable | Description |
+|---|---|
+| `APP_NAME` | Name shown in API metadata |
+| `APP_VERSION` | Version shown in API metadata |
+| `DEBUG` | Enables debug mode |
+| `DATA_FILE` | Path to legacy JSON file (unused in v2, kept for reference) |
+| `DATABASE_URL` | Full SQLAlchemy connection string to your PostgreSQL database |
+
+> **First-time setup:** run `alembic upgrade head` after configuring `.env` to create all tables via the migration history. See the [Database Migrations](#database-migrations) section below.
 
 ### Running the Server
 
@@ -233,9 +271,63 @@ uvicorn app.main:app --reload
 
 The API will be available at `http://localhost:8000`.
 
+On startup you will see a log line confirming the database is ready:
+```
+INFO | app.main | Database tables verified / created successfully.
+```
+
 Interactive docs are served automatically at:
 - **Swagger UI:** `http://localhost:8000/docs`
 - **ReDoc:** `http://localhost:8000/redoc`
+
+---
+
+## Database Migrations
+
+Schema changes are managed with **Alembic**. Every change to a model column is captured in a versioned migration file and applied to the database in a controlled, reversible way.
+
+### Current migration history
+
+| Revision | Description |
+|---|---|
+| `fabbfc95d6f4` | `initial_schema` — baseline for the `todos` table |
+
+### Common commands
+
+```bash
+# Apply all pending migrations (use on a fresh database or after pulling new migrations)
+alembic upgrade head
+
+# Check which revision the database is currently at
+alembic current
+
+# Show the full migration history
+alembic history --verbose
+
+# Roll back the last applied migration
+alembic downgrade -1
+```
+
+### Adding a new column (example workflow)
+
+**Step 1 — Update the model** in `app/database/models.py`:
+```python
+priority: Mapped[int] = mapped_column(Integer, default=0)
+```
+
+**Step 2 — Generate the migration** (Alembic diffs the model against the live DB):
+```bash
+alembic revision --autogenerate -m "add_priority_to_todos"
+```
+
+**Step 3 — Review** the generated file in `migrations/versions/` and confirm the SQL is correct.
+
+**Step 4 — Apply it:**
+```bash
+alembic upgrade head
+```
+
+> `alembic.ini` does **not** contain the database URL. Alembic reads `DATABASE_URL` directly from `.env` at runtime, so credentials are never stored in a config file.
 
 ---
 
@@ -247,12 +339,14 @@ pytest
 
 The test suite covers four layers:
 
-| File | Layer | Approach |
-|---|---|---|
-| `test_api.py` | API (integration) | Real TestClient + real app |
-| `test_service.py` | Service | FakeTodoRepository (in-memory) |
-| `test_repository.py` | Repository | Real storage against a temp file |
-| `test_storage.py` | Storage | Fixture validation |
+| File | Layer | Approach | Database |
+|---|---|---|---|
+| `test_api.py` | API (integration) | Real `TestClient` against live app | **SQLite in-memory** (never touches PostgreSQL) |
+| `test_service.py` | Service | `FakeTodoRepository` (in-memory) | None |
+| `test_repository.py` | Repository | `JsonTodoRepository` against a temp file | None |
+| `test_storage.py` | Storage | Fixture validation | None |
+
+> Integration tests use a shared **in-memory SQLite database** built from the same SQLAlchemy models as production. The schema is identical, the production PostgreSQL database is never opened, and all rows are cleared between tests. This also makes the test suite run significantly faster (~24 s vs ~65 s over the network).
 
 Run with verbose output:
 
@@ -265,3 +359,4 @@ pytest -v
 ## License
 
 See [LICENSE](LICENSE).
+

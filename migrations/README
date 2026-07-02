@@ -1,0 +1,36 @@
+# Migrations
+
+This directory contains Alembic database migration scripts for the Todo API.
+
+## Structure
+
+- `env.py`           — Alembic environment. Reads DATABASE_URL from .env at runtime.
+- `script.py.mako`   — Template used to generate new migration files.
+- `versions/`        — One file per migration, named with date + revision ID + description.
+
+## Common commands
+
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Check which revision the database is at
+alembic current
+
+# Show full migration history
+alembic history --verbose
+
+# Roll back the last migration
+alembic downgrade -1
+
+# Generate a new migration after changing a model
+alembic revision --autogenerate -m "describe_the_change"
+```
+
+## Notes
+
+- The database URL is never hardcoded in alembic.ini. It is read from the
+  DATABASE_URL environment variable (via .env) inside env.py.
+- New migrations are generated automatically by diffing SQLAlchemy models
+  against the live database schema (`--autogenerate`).
+- Always review a generated migration file before applying it.

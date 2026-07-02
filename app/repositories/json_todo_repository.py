@@ -3,7 +3,7 @@ from app.schemas.todo import TodoResponse
 from uuid import UUID
 
 
-class TodoRepository:
+class JsonTodoRepository:
     """
     Repository responsible for storing and retrieving Todo items.
     Currently uses in-memory storage.
