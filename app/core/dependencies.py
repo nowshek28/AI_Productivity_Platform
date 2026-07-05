@@ -15,3 +15,4 @@ def get_service(
     repository=Depends(get_postgres_repository),
 ):
     return TodoService(repository)
+

@@ -6,8 +6,9 @@ import boto3
 
 import logging
 
-from app.auth.exceptions import InvalidCredentialsError, UserNotConfirmedError
-from app.auth.schemas import ConfirmSignUpResponse, LoginResponse
+from app.auth.exceptions import InvalidCredentialsError, NotAuthorizedError, UserNotConfirmedError, UserNotFoundError
+from app.auth.jwt_verifier import JWTVerifier
+from app.auth.schemas import ConfirmSignUpResponse, LoginResponse, RefreshTokenResponse, SignOutResponse
 from app.core.config import settings
 
 
@@ -63,7 +64,7 @@ class CognitoClient:
             raise InvalidCredentialsError("Invalid password.")
         
         except self.client.exceptions.InvalidParameterException as e:
-            self.logger.error(f"Invalid parameter during sign_up: {e}")
+            self.logger.error("Invalid parameter during sign_up: %s", e)
             raise InvalidCredentialsError("Sign-up failed due to invalid parameters.")
 
     def confirm_sign_up(self, email: str, confirmation_code: str) -> ConfirmSignUpResponse:
@@ -104,6 +105,8 @@ class CognitoClient:
             
             self.logger.info("User logged in successfully.")
 
+            
+
             return response
 
         except self.client.exceptions.NotAuthorizedException:
@@ -118,9 +121,45 @@ class CognitoClient:
             self.logger.warning("Login failed: user not found.")
             raise InvalidCredentialsError("Invalid username or password.")
         
-
         
 
-    def refresh_token(self):
+    def refresh_access_token(self,  username: str,refresh_token: str) -> RefreshTokenResponse:
         """Refresh a user's Cognito token."""
-        pass
+
+        try:
+            response = self.client.initiate_auth(
+                ClientId=settings.COGNITO_CLIENT_ID,
+                AuthFlow="REFRESH_TOKEN_AUTH",
+                AuthParameters={
+                    "REFRESH_TOKEN": refresh_token,
+                    "SECRET_HASH": self._calculate_secret_hash(username),
+                }
+            )
+            self.logger.info("Token refreshed successfully.")
+            return RefreshTokenResponse(
+                access_token=response["AuthenticationResult"]["AccessToken"],
+                id_token=response["AuthenticationResult"]["IdToken"],
+                expires_in=response["AuthenticationResult"]["ExpiresIn"],
+                token_type=response["AuthenticationResult"]["TokenType"],
+            )
+        except self.client.exceptions.NotAuthorizedException:
+            self.logger.warning("Token refresh failed: invalid refresh token.")
+            raise NotAuthorizedError("Invalid refresh token.")
+        except self.client.exceptions.UserNotFoundException:
+            self.logger.warning("Token refresh failed: user not found.")
+            raise UserNotFoundError("User not found.")
+        
+    def global_sign_out(self, access_token: str) -> SignOutResponse:
+        """Sign out a user globally in Cognito."""
+        try:
+            self.client.global_sign_out(
+                AccessToken=access_token
+            )
+            self.logger.info("User signed out globally successfully.")
+            return SignOutResponse(message="User signed out globally successfully.")
+        except self.client.exceptions.NotAuthorizedException:
+            self.logger.warning("Global sign-out failed: invalid access token.")
+            raise NotAuthorizedError("Invalid access token.")
+        except self.client.exceptions.UserNotFoundException:
+            self.logger.warning("Global sign-out failed: user not found.")
+            raise UserNotFoundError("User not found.")

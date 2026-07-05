@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.auth.dependencies import get_auth_service
 from app.auth.service import AuthService
-from app.tests.fakes import FakeCognitoClient
+from app.tests.fakes import FakeCognitoClient, FakeJWTVerifier
 
 
 # ---------------------------------------------------------------------------
@@ -15,14 +15,16 @@ from app.tests.fakes import FakeCognitoClient
 @pytest.fixture
 def auth_client():
     """
-    TestClient with AWS Cognito replaced by FakeCognitoClient.
+    TestClient with AWS Cognito replaced by FakeCognitoClient and JWT
+    verification replaced by FakeJWTVerifier.
     A fresh fake is created per test so state never leaks between tests.
     Returns (client, fake_cognito) so tests can pre-seed users when needed.
     """
     fake_cognito = FakeCognitoClient()
+    fake_jwt = FakeJWTVerifier()
 
     def override_get_auth_service() -> AuthService:
-        return AuthService(fake_cognito)
+        return AuthService(fake_cognito, fake_jwt)
 
     app.dependency_overrides[get_auth_service] = override_get_auth_service
     yield TestClient(app), fake_cognito
@@ -209,3 +211,123 @@ def test_login_missing_password(auth_client):
     client, _ = auth_client
     response = client.post("/auth/login", json={"email": "test@example.com"})
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/verify-token
+# ---------------------------------------------------------------------------
+
+def test_verify_token_success(auth_client):
+    client, _ = auth_client
+    response = client.get(
+        "/auth/verify-token",
+        headers={"Authorization": f"Bearer {FakeJWTVerifier.VALID_TOKEN}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["sub"] == "fake-user-sub-uuid"
+    assert data["token_use"] == "access"
+    assert data["username"] == "test@example.com"
+
+
+def test_verify_token_invalid_token(auth_client):
+    client, _ = auth_client
+    response = client.get(
+        "/auth/verify-token",
+        headers={"Authorization": "Bearer this-is-not-valid"},
+    )
+    assert response.status_code == 401
+
+
+def test_verify_token_missing_authorization_header(auth_client):
+    """Request without Authorization header must be rejected."""
+    client, _ = auth_client
+    response = client.get("/auth/verify-token")
+    assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/refresh-token
+# ---------------------------------------------------------------------------
+
+def test_refresh_token_success(auth_client):
+    client, fake = auth_client
+    _register_and_confirm(fake, "test@example.com", "SecurePass1!")
+
+    response = client.post("/auth/refresh-token", json={
+        "username": "test@example.com",
+        "refresh_token": "fake-refresh-token",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "id_token" in data
+    assert "expires_in" in data
+    assert "token_type" in data
+
+
+def test_refresh_token_invalid_refresh_token(auth_client):
+    client, fake = auth_client
+    _register_and_confirm(fake, "test@example.com", "SecurePass1!")
+
+    response = client.post("/auth/refresh-token", json={
+        "username": "test@example.com",
+        "refresh_token": "wrong-refresh-token",
+    })
+    assert response.status_code == 401
+
+
+def test_refresh_token_unknown_user(auth_client):
+    client, _ = auth_client
+    response = client.post("/auth/refresh-token", json={
+        "username": "ghost@example.com",
+        "refresh_token": "fake-refresh-token",
+    })
+    assert response.status_code == 401
+
+
+def test_refresh_token_missing_refresh_token_field(auth_client):
+    """Schema validation rejects a request body missing the refresh_token field."""
+    client, _ = auth_client
+    response = client.post("/auth/refresh-token", json={"username": "test@example.com"})
+    assert response.status_code == 422
+
+
+def test_refresh_token_missing_username_field(auth_client):
+    """Schema validation rejects a request body missing the username field."""
+    client, _ = auth_client
+    response = client.post("/auth/refresh-token", json={"refresh_token": "fake-refresh-token"})
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/global-sign-out
+# ---------------------------------------------------------------------------
+
+def test_global_sign_out_success(auth_client):
+    client, _ = auth_client
+    response = client.post(
+        "/auth/global-sign-out",
+        headers={"Authorization": f"Bearer {FakeJWTVerifier.VALID_TOKEN}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "message" in data
+
+
+def test_global_sign_out_invalid_token(auth_client):
+    """An unrecognised access token must be rejected with 401."""
+    client, _ = auth_client
+    response = client.post(
+        "/auth/global-sign-out",
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
+    assert response.status_code == 401
+
+
+def test_global_sign_out_missing_authorization_header(auth_client):
+    """Request without Authorization header must be rejected."""
+    client, _ = auth_client
+    response = client.post("/auth/global-sign-out")
+    assert response.status_code in (401, 403)
+

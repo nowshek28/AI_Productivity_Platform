@@ -1,6 +1,29 @@
-from app.auth.exceptions import InvalidCredentialsError, UserNotConfirmedError
-from app.auth.schemas import ConfirmSignUpResponse
+from app.auth.exceptions import InvalidCredentialsError, NotAuthorizedError, UserNotConfirmedError
+from app.auth.schemas import ConfirmSignUpResponse, RefreshTokenResponse, SignOutResponse
 from app.schemas.todo import TodoResponse
+
+
+class FakeJWTVerifier:
+    """
+    In-memory JWT verifier for tests — no crypto, no network.
+    Any token equal to VALID_TOKEN is accepted; all others raise ValueError.
+    """
+    VALID_TOKEN = "fake-access-token"
+    FAKE_CLAIMS = {
+        "sub": "fake-user-sub-uuid",
+        "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_FAKEPOOL",
+        "client_id": "fake-client-id",
+        "token_use": "access",
+        "username": "test@example.com",
+        "exp": 9999999999,
+        "iat": 1000000000,
+        "auth_time": 1000000000,
+    }
+
+    def verify_access_token(self, token: str) -> dict:
+        if token != self.VALID_TOKEN:
+            raise ValueError("Invalid token.")
+        return self.FAKE_CLAIMS
 
 
 class FakeCognitoClient:
@@ -44,6 +67,21 @@ class FakeCognitoClient:
                 "TokenType": "Bearer",
             }
         }
+
+    def refresh_access_token(self, username: str, refresh_token: str) -> RefreshTokenResponse:
+        if username not in self._users or refresh_token != "fake-refresh-token":
+            raise NotAuthorizedError("Invalid refresh token.")
+        return RefreshTokenResponse(
+            access_token="fake-new-access-token",
+            id_token="fake-new-id-token",
+            expires_in=3600,
+            token_type="Bearer",
+        )
+
+    def global_sign_out(self, access_token: str) -> SignOutResponse:
+        if access_token != "fake-access-token":
+            raise NotAuthorizedError("Invalid access token.")
+        return SignOutResponse(message="User signed out globally successfully.")
 
 
 class FakeTodoRepository:

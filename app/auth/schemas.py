@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 class SignUpRequest(BaseModel):
@@ -57,9 +59,81 @@ class LoginResponse(BaseModel):
     """
     Response schema for successful login.
     """
-    access_token:str
-    id_token:str
-    refresh_token:str
-    expires_in:int
-    token_type:str
+    access_token: str
+    id_token: str
+    refresh_token: str
+    expires_in: int
+    token_type: str
 
+
+class TokenClaims(BaseModel):
+    """
+    Schema for JWT token claims.
+    Attributes:
+        sub (str): The subject of the token, typically the user ID.
+        iss (str): The issuer of the token.
+        client_id (str): The client ID associated with the token.
+        token_use (str): The intended use of the token (e.g., "access").
+        username (str): The username associated with the token.
+        exp (int): The expiration time of the token (in seconds since epoch).
+        iat (int): The time at which the token was issued (in seconds since epoch).
+        auth_time (int): The time at which the user authenticated (in seconds since epoch).
+        scope (Optional[str]): The scope of access granted by the token.
+        origin_jti (Optional[str]): The original JWT ID, if applicable.
+        event_id (Optional[str]): An optional event ID associated with the token.
+        jti (Optional[str]): The JWT ID, a unique identifier for the token.
+    """
+    sub: str
+    iss: str
+    client_id: str
+    token_use: str
+    username: str
+
+    exp: int
+    iat: int
+    auth_time: int
+
+    scope: Optional[str] = None
+    origin_jti: Optional[str] = None
+    event_id: Optional[str] = None
+    jti: Optional[str] = None
+
+class RefreshTokenRequest(BaseModel):
+    """
+    Schema for refresh token request data.
+    Attributes:
+        username (str): The username associated with the refresh token.
+        refresh_token (str): The refresh token used to obtain a new access token.
+    """
+    username: str
+    refresh_token: str
+
+class RefreshTokenResponse(BaseModel):
+    """
+    Response schema for successful refresh token operation.
+    Attributes:
+        access_token (str): The new access token.
+        id_token (str): The new ID token.
+        expires_in (int): The expiration time of the new access token (in seconds).
+        token_type (str): The type of the new token (e.g., "Bearer").
+    """
+    access_token: str
+    id_token: str
+    expires_in: int
+    token_type: str
+
+class SignOutRequest(BaseModel):
+    """
+    Schema for sign-out request data.
+    Attributes:
+        access_token (str): The access token of the user to sign out.
+    """
+    access_token: str
+
+class SignOutResponse(BaseModel):
+    """
+    Response schema for successful sign-out operation.
+    Attributes:
+        message (str): A message indicating the result of the sign-out operation.
+    """
+    message: str

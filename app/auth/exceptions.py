@@ -13,3 +13,11 @@ class UserNotConfirmedError(Exception):
 class InvalidCredentialsError(Exception):
     """Exception raised for invalid login credentials."""
     pass
+
+class UserNotFoundError(Exception):
+    """Exception raised when a user is not found."""
+    pass
+
+class NotAuthorizedError(Exception):
+    """Exception raised when a user is not authorized to perform an action."""
+    pass

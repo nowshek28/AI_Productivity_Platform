@@ -1,14 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.auth.dependencies import get_auth_service
-from app.auth.exceptions import InvalidCredentialsError, UserNotConfirmedError
-from app.auth.schemas import ConfirmSignUpResponse, ConfirmSignUpRequest, LoginRequest, LoginResponse, SignUpRequest, SignUpResponse
+from app.auth.exceptions import InvalidCredentialsError, NotAuthorizedError, UserNotConfirmedError, UserNotFoundError
+from app.auth.jwt_verifier import JWTVerifier
+from app.auth.schemas import ConfirmSignUpResponse, ConfirmSignUpRequest, LoginRequest, LoginResponse, SignOutRequest, SignOutResponse, TokenClaims
+from app.auth.schemas import SignUpRequest, SignUpResponse, RefreshTokenRequest, RefreshTokenResponse
 from app.auth.service import AuthService
+
 
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"],
 )
+
+security = HTTPBearer()
 
 @router.post(
     "/signup",
@@ -123,3 +129,97 @@ def login(
             detail="User account is not confirmed. Please check your email for confirmation instructions."
             )
     
+    
+@router.get(
+    "/verify-token",
+    response_model=TokenClaims,
+    summary="Verify a JWT token",
+    response_description="Returns the decoded payload of the JWT if verification is successful"
+)
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> TokenClaims:
+    """
+    Verify a JWT token.
+    
+    Args:
+        credentials (HTTPAuthorizationCredentials): The HTTP authorization credentials containing the JWT token.
+        auth_service (AuthService): The authentication service dependency.
+        
+    Returns:
+        TokenClaims: The response containing the decoded payload of the JWT if verification is successful.
+    """
+    token = credentials.credentials
+    try:
+        payload = auth_service.verify_access_token(token)
+        return payload
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, 
+            detail="Token verification failed."
+        )
+    
+
+@router.post(
+    "/refresh-token",
+    response_model=RefreshTokenResponse,
+    summary="Refresh the access token using a refresh token",
+    response_description="Returns new authentication tokens upon successful refresh"
+)
+def refresh_token(
+    refresh_token_request: RefreshTokenRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> RefreshTokenResponse:
+    """
+    Refresh the access token using a refresh token.
+    
+    Args:
+        refresh_token_request (RefreshTokenRequest): The request containing the refresh token.
+        auth_service (AuthService): The authentication service dependency.
+        
+    Returns:
+        RefreshTokenResponse: The response containing new authentication tokens.
+    """
+    try:
+        return auth_service.refresh_access_token(username=refresh_token_request.username, refresh_token=refresh_token_request.refresh_token)
+    except NotAuthorizedError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid refresh token."
+        )
+
+
+@router.post(
+    "/global-sign-out",
+    response_model=SignOutResponse,
+    summary="Sign out a user globally, invalidating all their sessions",
+    response_description="Returns a message indicating the result of the global sign-out operation"
+)
+def global_sign_out(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> SignOutResponse:
+    """
+    Sign out a user globally, invalidating all their sessions.
+    
+    Args:
+        credentials (HTTPAuthorizationCredentials): The HTTP authorization credentials containing the access token.
+        auth_service (AuthService): The authentication service dependency.
+        
+    Returns:
+        SignOutResponse: The response indicating the result of the global sign-out operation.
+    """
+    access_token = credentials.credentials
+    try:
+        return auth_service.global_sign_out(access_token=access_token)
+    except NotAuthorizedError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid access token."
+        )
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
