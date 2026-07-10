@@ -1,8 +1,9 @@
 import logging
 
 from fastapi import FastAPI
-from app.api.v1.router import router as api_router
+from app.api.v1.router import router as api_v1_router
 from app.auth.router import router as auth_router
+from app.api.v2.router import router as transcript_router
 
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -21,7 +22,8 @@ app = FastAPI(
 register_exception_handlers(app)
 register_middleware(app)
 app.include_router(auth_router)
-app.include_router(api_router)
+app.include_router(api_v1_router)
+app.include_router(transcript_router)
 
 
 @app.get("/")

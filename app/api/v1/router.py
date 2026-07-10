@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.routes.health import router as health_router
 from app.api.v1.routes.todos import router as todos_router
+from app.api.v2.routes.transcript import router as transcript_router
 
 router = APIRouter()
 

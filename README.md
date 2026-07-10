@@ -1,4 +1,4 @@
-# Todo API
+# AI PRODUCTIVITY PLATFORM
 
 A production-inspired REST API for managing todo items, built with **FastAPI** and **Python**. Designed as a learning project to demonstrate professional backend architecture patterns applied to a simple, approachable domain.
 
