@@ -1,6 +1,10 @@
+from datetime import datetime, timezone
+from uuid import UUID
+
 from app.auth.exceptions import InvalidCredentialsError, NotAuthorizedError, UserNotConfirmedError
 from app.auth.schemas import ConfirmSignUpResponse, RefreshTokenResponse, SignOutResponse
-from app.schemas.todo import TodoResponse
+from app.database.models import TodoModel
+from app.schemas.todo import TodoResponse, TodoCreate
 
 
 class FakeJWTVerifier:
@@ -95,7 +99,26 @@ class FakeTodoRepository:
     def __init__(self):
         self.todos = []
 
-    def create(self, todo: TodoResponse):
+    def create(self,
+        *,
+        title: str,
+        description: str | None,
+        user_id: str,
+        priority: str,
+        category: str,
+        ) -> TodoModel:
+        now = datetime.now(timezone.utc)
+        todo = TodoModel(
+            id=str(UUID(int=0)),  # Use a fixed UUID for testing
+            title=title,
+            description=description,
+            completed=False,
+            user_id=user_id,
+            priority=priority,
+            category=category,
+            created_at=now,
+            updated_at=now,
+        )
         self.todos.append(todo)
         return todo
 

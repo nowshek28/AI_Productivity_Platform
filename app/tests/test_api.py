@@ -131,7 +131,6 @@ def test_get_todo(client):
         "description": "This is a test todo item.",
         "priority": "medium",
         "category": "other",
-        "completed": False
     }
     create_response = client.post("/api/v1/todos", json=todo_data)
     assert create_response.status_code == 201
@@ -156,7 +155,6 @@ def test_get_todo_by_id(client):
         "description": "This is a test todo item.",
         "priority": "medium",
         "category": "other",
-        "completed": False
     }
     create_response = client.post("/api/v1/todos", json=todo_data)
     assert create_response.status_code == 201

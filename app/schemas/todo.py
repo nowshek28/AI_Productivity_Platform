@@ -33,6 +33,11 @@ class TodoBase(BaseModel):
         description="Optional description of the todo item"
     )
 
+    completed: bool = Field(
+        default=False,
+        description="Completion status of the todo item"
+    )
+
     priority: ToDoPriority = Field(
         default=ToDoPriority.MEDIUM,
         description="Priority of the todo item"
@@ -81,6 +86,8 @@ class TodoResponse(TodoBase):
     """
 
     id: UUID
+    title: str
+    description: Optional[str] = None
     completed: bool
     user_id: Optional[str] = None
     priority: Optional[ToDoPriority] = None

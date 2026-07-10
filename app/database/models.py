@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, ForeignKey
 from sqlalchemy import DateTime
-from sqlalchemy import String
+from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm import mapped_column
 from uuid import uuid4
@@ -61,6 +61,13 @@ class TodoModel(Base):
         back_populates="todos"
     )
 
+    transcript: Mapped["TranscriptModel | None"] = relationship(
+        "TranscriptModel",
+        back_populates="todo",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
 
 class UserModel(Base):
     __tablename__ = "users"
@@ -97,3 +104,51 @@ class UserModel(Base):
         "TodoModel",
         back_populates="user"
     )
+
+
+class TranscriptModel(Base):
+    __tablename__ = "transcripts"
+
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid4())
+    )
+
+    todo_id: Mapped[str] = mapped_column(
+        ForeignKey("todos.id"),
+        nullable=False,
+        unique=True
+    )
+
+    s3_key: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        unique=True
+    )
+
+    original_filename: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    file_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False
+    )
+
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utcnow
+    )
+
+    todo: Mapped["TodoModel"] = relationship(
+        "TodoModel",
+        back_populates="transcript"
+    )
+

@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 
 from app.database.models import UserModel
-from app.schemas.user import UserCreate, CurrentUserResponse
 
 class PostgresUserRepository:
     """
@@ -11,42 +10,37 @@ class PostgresUserRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def _to_response(self, model: UserModel) -> CurrentUserResponse:
-        """Convert a SQLAlchemy UserModel to a Pydantic CurrentUserResponse."""
-        return CurrentUserResponse(
-            id=model.id,
-            cognito_sub=model.cognito_sub,
-            username=model.username,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )
-
-    def get_by_cognito_sub(self, cognito_sub: str) -> CurrentUserResponse | None:
+    def get_by_cognito_sub(self, cognito_sub: str) -> UserModel | None:
         """Retrieve a User item by its Cognito sub from the database."""
         model = (self.db.query(UserModel)
                 .filter(UserModel.cognito_sub == cognito_sub)
                 .first()
                 )
         if model:
-            return self._to_response(model)
+            return model
         return None
 
-    def create(self, user: UserCreate) -> CurrentUserResponse:
+    def create(
+            self,
+            *,
+            cognito_sub:str,
+            username:str
+            ) -> UserModel:
         """Create a new User item in the database."""
         new_user = UserModel(
-            cognito_sub=user.cognito_sub,
-            username=user.username
+            cognito_sub=cognito_sub,
+            username=username
         )
         self.db.add(new_user)
         self.db.commit()
         self.db.refresh(new_user)
-        return self._to_response(new_user)
+        return new_user
     
-    def update(self, user: UserModel) -> CurrentUserResponse:
+    def update(self, user: UserModel) -> UserModel:
         """Update an existing User item in the database."""
         self.db.commit()
         self.db.refresh(user)
-        return self._to_response(user)
+        return user
     
     def delete(self, user: UserModel) -> bool:
         """Delete a User item from the database."""

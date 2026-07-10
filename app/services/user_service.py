@@ -4,7 +4,6 @@ import logging
 
 from app.auth.schemas import TokenClaims
 from app.schemas.user import UserCreate, CurrentUserResponse
-from app.database.models import UserModel
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +14,16 @@ class UserService:
 
     def __init__(self, user_repository):
         self.user_repository = user_repository
+    
+    def _to_response(self, model) -> CurrentUserResponse:
+        """Convert a SQLAlchemy UserModel to a Pydantic CurrentUserResponse."""
+        return CurrentUserResponse(
+            id=model.id,
+            cognito_sub=model.cognito_sub,
+            username=model.username,
+            created_at=model.created_at,
+            updated_at=model.updated_at
+        )
 
     def get_user_by_cognito_sub(self, cognito_sub: str) -> CurrentUserResponse | None:
         """Retrieve a User item by its Cognito sub."""
@@ -22,7 +31,8 @@ class UserService:
         user = self.user_repository.get_by_cognito_sub(cognito_sub)
         if user is None:
             logger.warning(f"User not found for cognito_sub: {cognito_sub}")
-        return user
+            return None
+        return self._to_response(user)
     
     def get_or_create_user(self, claims: TokenClaims) -> CurrentUserResponse:
         """
@@ -49,19 +59,26 @@ class UserService:
         logger.info(f"User created successfully: {user.id}")
         return user
 
-    def update_user(self, user_model: UserModel) -> CurrentUserResponse:
+    def update_user(
+            self,
+            *,
+            id:str,
+            username:str) -> CurrentUserResponse:
         """Update an existing User item."""
-        logger.info(f"Updating user: {user_model.id}")
-        user = self.user_repository.update(user_model)
+        logger.info(f"Updating user: {id}")
+        user = self.user_repository.update(id=id, username=username)
         logger.info(f"User updated successfully: {user.id}")
         return user
 
-    def delete_user(self, user_model: UserModel) -> bool:
+    def delete_user(
+            self, 
+            *,
+            id: str) -> bool:
         """Delete a User item."""
-        logger.info(f"Deleting user: {user_model.id}")
-        result = self.user_repository.delete(user_model)
+        logger.info(f"Deleting user: {id}")
+        result = self.user_repository.delete(id=id)
         if result:
-            logger.info(f"User deleted successfully: {user_model.id}")
+            logger.info(f"User deleted successfully: {id}")
         else:
-            logger.warning(f"Failed to delete user: {user_model.id}")
+            logger.warning(f"Failed to delete user: {id}")
         return result

@@ -2,8 +2,10 @@ from fastapi import Depends
 
 from app.repositories.postgres_todo_repository import PostgresTodoRepository
 from app.repositories.postgres_user_repository import PostgresUserRepository
+from app.repositories.transcript_repository import TranscriptRepository
 from app.services.todo_service import TodoService
 from app.database.database import get_db
+from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
 
 
@@ -27,4 +29,15 @@ def get_user_service(
     repository=Depends(get_user_repository),
 ):
     return UserService(repository)
+
+def get_transcript_repository(
+    db=Depends(get_db),
+):
+    return TranscriptRepository(db)
+
+def get_transcript_service(
+    transcript_repository=Depends(get_transcript_repository),
+    todo_repository=Depends(get_postgres_repository),
+):
+    return TranscriptService(transcript_repository, todo_repository)
 

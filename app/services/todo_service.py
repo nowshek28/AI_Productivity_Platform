@@ -14,27 +14,38 @@ class TodoService:
     def __init__(self, repository):
         self.repository = repository
 
+    def _to_response(self, model) -> TodoResponse:
+        """
+        Convert a TodoModel to a TodoResponse.
+        """
+        return TodoResponse(
+            id=model.id,
+            title=model.title,
+            description=model.description,
+            completed=model.completed,
+            user_id=model.user_id,
+            priority=model.priority,
+            category=model.category,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+    
     def create(self, todo: TodoCreate, user_id: str) -> TodoResponse:
         """
         Create a new Todo.
         """
         logger.info(f"Creating a new todo for user {user_id}.")
-        now = datetime.now(timezone.utc)
 
-        new_todo = TodoResponse(
-            id=uuid4(),
+        new_todo = self.repository.create(
             title=todo.title,
             description=todo.description,
-            completed=False,
             user_id=user_id,
             priority=todo.priority,
             category=todo.category,
-            created_at=now,
-            updated_at=now,
         )
 
         logger.info(f"Todo created successfully: {new_todo.id}")
-        return self.repository.create(new_todo)
+        return self._to_response(new_todo)
     
     def get_all(self, user_id: str) -> list[TodoResponse]:
         """
@@ -42,7 +53,7 @@ class TodoService:
         """
         todos = self.repository.get_all(user_id=user_id)
         logger.info(f"Retrieved {len(todos)} todos for user {user_id}.")
-        return todos
+        return [self._to_response(todo) for todo in todos]
     
     def get_by_id(self, todo_id: UUID, user_id: str) -> TodoResponse:
         """
@@ -54,7 +65,7 @@ class TodoService:
             logger.warning(f"Todo {todo_id} not found for user {user_id}")
             raise TodoNotFoundError(todo_id)
         logger.info(f"Todo {todo_id} retrieved successfully.")
-        return todo
+        return self._to_response(todo)
     
     def get_by_completed(self, completed: bool, user_id: str) -> list[TodoResponse]:
         """
@@ -62,7 +73,7 @@ class TodoService:
         """
         todos = self.repository.get_by_completed(completed=completed, user_id=user_id)
         logger.info(f"Retrieved {len(todos)} todos for user {user_id} with completed={completed}.")
-        return todos
+        return [self._to_response(todo) for todo in todos]
     
     def get_by_priority(self, priority: ToDoPriority, user_id: str) -> list[TodoResponse]:
         """
@@ -70,7 +81,7 @@ class TodoService:
         """
         todos = self.repository.get_by_priority(priority=priority, user_id=user_id)
         logger.info(f"Retrieved {len(todos)} todos for user {user_id} with priority={priority}.")
-        return todos
+        return [self._to_response(todo) for todo in todos]
     
     def get_by_category(self, category: ToDoCategory, user_id: str) -> list[TodoResponse]:
         """
@@ -78,7 +89,7 @@ class TodoService:
         """
         todos = self.repository.get_by_category(category=category, user_id=user_id)
         logger.info(f"Retrieved {len(todos)} todos for user {user_id} with category={category}.")
-        return todos
+        return [self._to_response(todo) for todo in todos]
 
     def update(self, todo_id: UUID, todo_update: TodoUpdate, user_id: str) -> TodoResponse:
         """
@@ -90,12 +101,25 @@ class TodoService:
             logger.warning(f"Todo {todo_id} not found for user {user_id}")
             raise TodoNotFoundError(todo_id)
 
-        updated_todo = existing_todo.model_copy(
-            update=todo_update.model_dump(exclude_unset=True)
-            )
-        updated_todo.updated_at = datetime.now(timezone.utc)
+        updated_todo = TodoUpdate(
+            title=todo_update.title if todo_update.title != "string" else existing_todo.title,
+            description=todo_update.description if todo_update.description != "string" else existing_todo.description,
+            completed=todo_update.completed if todo_update.completed is not None else existing_todo.completed,
+            priority=todo_update.priority if todo_update.priority != "string" else existing_todo.priority,
+            category=todo_update.category if todo_update.category != "string" else existing_todo.category,   
+        )
         logger.info(f"Todo {todo_id} updated successfully.")
-        return self.repository.update(todo_id, updated_todo, user_id=user_id)
+        updated_todo = self.repository.update(
+            todo_id=todo_id,
+            title=updated_todo.title,
+            description=updated_todo.description,
+            completed=updated_todo.completed,
+            priority=updated_todo.priority,
+            category=updated_todo.category,
+            updated_at=datetime.now(timezone.utc),
+            user_id=user_id
+            )
+        return self._to_response(updated_todo)
     
     def delete(self, todo_id: UUID, user_id: str) -> bool:
         """
