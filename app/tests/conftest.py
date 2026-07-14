@@ -8,13 +8,13 @@ from sqlalchemy.pool import StaticPool
 from app.storage.json_storage import JsonStorage
 from app.repositories.json_todo_repository import JsonTodoRepository
 from app.services.todo_service import TodoService
-from app.tests.fakes import FakeStorageService, FakeTodoRepository
+from app.tests.fakes import FakeStorageService, FakeTodoRepository, FakeETLService
 
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database.base import Base
 from app.database.models import TodoModel
-from app.core.dependencies import get_db, get_s3_storage_service
+from app.core.dependencies import get_db, get_etl_service, get_s3_storage_service
 from app.auth.dependencies import get_current_db_user
 from app.schemas.user import CurrentUserResponse
 
@@ -82,7 +82,7 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_db_user] = lambda: _fake_user
     app.dependency_overrides[get_s3_storage_service] = lambda: FakeStorageService()  # Mock S3 storage service
-
+    app.dependency_overrides[get_etl_service] = lambda: FakeETLService()  # Mock ETL service
     yield TestClient(app)
 
     # Teardown: clear all rows so the next test starts with an empty database.

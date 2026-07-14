@@ -180,6 +180,7 @@ class FakeTranscriptRepository:
             original_file_name: str,
             file_type: str,
             file_size: int,
+            processing_status: str,
         ) -> TranscriptModel:
 
         transcript = TranscriptModel(
@@ -188,7 +189,8 @@ class FakeTranscriptRepository:
             s3_key=s3_key,
             original_filename=original_file_name,
             file_type=file_type,
-            file_size=file_size
+            file_size=file_size,
+            processing_status=processing_status
         )
         self.transcripts.append(transcript)
         return transcript
@@ -259,6 +261,11 @@ class FakeTranscriptRepository:
                 return transcript.s3_key, transcript.original_filename
         return (None, None)
     
+    def update_processing_status(self, transcript_id: str, user_id: str, new_status: str) -> None:
+        for transcript in self.transcripts:
+            if transcript.id == transcript_id and transcript.user_id == user_id:
+                transcript.processing_status = new_status
+                return
 
 class FakeStorageService:
 
@@ -276,3 +283,13 @@ class FakeStorageService:
     
     def download_transcript_to_file(self, s3_key, local_path):
         return True
+    
+class FakeETLService:
+    
+    def submit_transcript(self, transcript_id: str, user_id: str) -> None:
+        """
+        Simulate submitting a transcript for processing.
+        """
+        # In a real implementation, this would trigger the ETL process.
+        # Here, we just log the submission for testing purposes.
+        print(f"Simulated submission of transcript {transcript_id} for user {user_id}.")
