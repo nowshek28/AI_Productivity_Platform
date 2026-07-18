@@ -181,3 +181,12 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# chromadb
+
+# ChromaDB
+chroma/
+chroma_db/
+data/chroma/
+*.sqlite3
+*.sqlite
