@@ -17,7 +17,7 @@
 ![ChromaDB](https://img.shields.io/badge/Vector-Database-7B68EE.svg)
 ![SentenceTransformers](https://img.shields.io/badge/Embeddings-all--MiniLM--L6--v2-success.svg)
 ![Groq](https://img.shields.io/badge/LLM-Groq-black.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 </p>
 
@@ -634,6 +634,8 @@ Logging includes
 
 ---
 
-# License
+#  License
 
-See [LICENSE](LICENSE).
+This project is licensed under the **Apache License 2.0**.
+
+See the [LICENSE](LICENSE) file for the full license text.
