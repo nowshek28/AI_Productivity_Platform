@@ -80,3 +80,45 @@ class VectorStoreService:
         except Exception as e:
             logger.error("Failed to store records in the vector store: %s", str(e))
             raise RuntimeError("Failed to store records in the vector store.") from e
+        
+    async def search(
+            self,
+            query_embedding: list[float],
+            where: dict | None = None,
+            include: list[str] | None = None,
+            top_k: int = 10,
+    ) -> dict:
+        """
+        Searches the vector store for records similar to the provided query embedding.
+
+        Args:
+            query_embedding (list[float]): The embedding of the query.
+            top_k (int): The number of top results to return.
+
+        Returns:
+            dict: A dictionary containing the search results.
+        """
+        try:
+            if top_k <= 0:
+                logger.warning("top_k must be a positive integer. Received: %d", top_k)
+                raise ValueError("top_k must be a positive integer.")
+            
+            query_kwargs = {
+                "query_embeddings": [query_embedding],
+                "n_results": top_k,
+                "include": include,
+            }
+
+            if where is not None:
+                query_kwargs["where"] = where
+
+            if include is None:
+                query_kwargs["include"] = ["documents", "metadatas", "distances"]
+
+            logger.info("Searching the vector store with top_k=%d and where=%s.", top_k, where)
+            results = self.collection.query(**query_kwargs)
+            logger.info("Search completed. Found %d results.", len(results.get("ids", [])))
+            return results
+        except Exception as e:
+            logger.exception("Failed to search records in the vector store: %s", str(e))
+            raise RuntimeError("Failed to search records in the vector store.") from e

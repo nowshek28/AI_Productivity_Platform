@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v2.routes.transcript import router as transcript_router
+from app.api.v2.routes.retrieval import router as retrieval_router
 
 router = APIRouter()
 
@@ -11,4 +12,10 @@ router.include_router(
     transcript_router,
     prefix="/api/v2",
     tags=["transcripts"],
+)
+
+router.include_router(
+    retrieval_router,
+    prefix="/api/v2",
+    tags=["retrieval"],
 )

@@ -44,3 +44,7 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+#chromaDB
+data/
+chroma_db/

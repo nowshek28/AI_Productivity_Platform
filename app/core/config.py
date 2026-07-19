@@ -27,9 +27,17 @@ class Settings(BaseSettings):
 
     EMBEDDING_PROVIDER: str
     EMBEDDING_MODEL: str
+    CROSS_ENCODER_MODEL: str
+
+    RETRIEVE_TOP_K: int
+    RERANK_SCORE_THRESHOLD: float
 
     CHROMA_DB_PATH: str
     CHROMA_COLLECTION_NAME: str
+
+    LLM_PROVIDER: str
+    GROQ_API_KEY: str
+    LLM_MODEL: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

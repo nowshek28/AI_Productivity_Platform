@@ -10,8 +10,8 @@ from app.services.storage_service import StorageService
 from app.services.etl.text_extractor import TextExtractor
 from app.services.etl.text_cleaner import TextCleaner
 from app.services.etl.chunk_service import ChunkService
-from app.services.etl.embedding_service import EmbeddingService
-from app.services.etl.vectorstore_service import VectorStoreService
+from app.services.embeddings.embedding_service import EmbeddingService
+from app.services.vector_store.vectorstore_service import VectorStoreService
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def process_transcript(transcript_id: str, user_id: str):
 
 
             # embeddings conversion
-            embeddings = embedding_service.generate_embeddings(chunks)
+            embeddings = embedding_service.embed_documents(chunks)
 
             logger.info("Generating embeddings from transcript with ID: %s for user ID: %s", transcript_id, user_id)
 

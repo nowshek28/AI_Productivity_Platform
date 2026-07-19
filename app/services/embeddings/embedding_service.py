@@ -18,7 +18,7 @@ class EmbeddingService:
         else: 
             self.model = None
 
-    def generate_embeddings(self, chunks: list[str]) -> list[list[float]]:
+    def embed_documents(self, chunks: list[str]) -> list[list[float]]:
         """
         Generates embeddings for the given text using the specified provider and model.
 
@@ -26,7 +26,7 @@ class EmbeddingService:
             chunks (list[str]): The input text chunks for which to generate embeddings.
 
         Returns:
-            list[float]: A list of floating-point numbers representing the embeddings.
+            list[list[float]]: A list of lists of floating-point numbers representing the embeddings.
         """
 
         if self.provider == "huggingface":
@@ -40,6 +40,28 @@ class EmbeddingService:
         
         raise ValueError(f"Unsupported embedding provider: {self.provider}")
     
+    async def embed_query(self, query: str) -> list[float]:
+        """
+        Generates an embedding for the given query using the specified provider and model.
+
+        Args:
+            query (str): The input query for which to generate an embedding.
+
+        Returns:
+            list[float]: A list of floating-point numbers representing the embedding.
+        """
+        if self.provider == "huggingface":
+            logger.info("Generating query embedding using Hugging Face model: %s", self.model_name)
+            return self._generate_huggingface_embeddings([query])[0]
+
+        if self.provider == "openai":
+            # return self._generate_openai_embedding(query)
+            logger.warning("OpenAI embedding provider is not implemented yet.")
+            raise NotImplementedError("OpenAI embedding provider is not implemented yet.")
+
+        raise ValueError(f"Unsupported embedding provider: {self.provider}")
+    
+
     def _generate_huggingface_embeddings(self, chunks: list[str]) -> list[list[float]]:
         
         """
@@ -49,7 +71,7 @@ class EmbeddingService:
             embeddings = self.model.encode(
                 chunks,
                 convert_to_numpy=True,
-                show_progress_bar=True
+                normalize_embeddings=True,
             )
             logger.info(" %d Embeddings generated successfully.", len(embeddings))
             return embeddings.tolist()
