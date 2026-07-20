@@ -56,8 +56,8 @@ class RetrievalService:
             )
             
             # Build context from the retrieved chunks
-            context = self.context_builder.build(chunks)
-
+            context = self.context_builder.build(chunks, transcript_id=transcript_id, user_id=user_id)
+            logger.info(f"Context built successfully................")
             # Build prompt for the LLM using the query and context
             messages = self.prompt_builder.build(
                 query=query,

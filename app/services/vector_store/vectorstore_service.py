@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 import chromadb
 
@@ -122,3 +123,52 @@ class VectorStoreService:
         except Exception as e:
             logger.exception("Failed to search records in the vector store: %s", str(e))
             raise RuntimeError("Failed to search records in the vector store.") from e
+
+    def get_neighboring_chunks(
+            self,
+            chunk_index: int,
+            transcript_id: str,
+            user_id: str,
+            neighbor_range: int = 1,
+    ) -> dict:
+        """
+        Retrieves neighboring chunks based on the provided chunk index.
+
+        Args:
+        Args:
+            chunk_index (int): The index of the current chunk.
+            neighbor_range (int): The range of neighboring chunks to retrieve.
+            transcript_id (UUID): The transcript ID of the current chunk.
+            user_id (UUID): The user ID of the current chunk.
+        Returns:
+            dict: A dictionary containing the neighboring chunk records.
+        """
+        try:
+            if neighbor_range < 1:
+                logger.warning("neighbor_range must be a positive integer. Received: %d", neighbor_range)
+                raise ValueError("neighbor_range must be a positive integer.")
+            
+            # IF chunk_index is 0, we can only get the next chunk   
+            #otherwise, we can get the previous and next chunks
+            start_index = max(0, chunk_index - neighbor_range)
+            end_index = chunk_index + neighbor_range
+            
+            where_filter = {
+                "$and": [
+                    {"transcript_id": transcript_id},
+                    {"user_id": user_id},
+                    {"chunk_index": {"$gte": start_index}},
+                    {"chunk_index": {"$lte": end_index}},
+                ]
+            }
+
+            #logger.info("Retrieving neighboring chunks for chunk_index=%d with neighbor_range=%d.", chunk_index, neighbor_range)
+            results = self.collection.get(
+                where=where_filter,
+                include=["documents", "metadatas"],
+            )
+            return results
+        
+        except Exception as e:
+            logger.exception("Failed to retrieve neighboring chunks: %s", str(e))
+            raise RuntimeError("Failed to retrieve neighboring chunks.") from e
