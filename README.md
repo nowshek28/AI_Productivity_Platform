@@ -638,4 +638,4 @@ Logging includes
 
 This project is licensed under the **Apache License 2.0**.
 
-See the [LICENSE](LICENSE) file for the full license text.
+See the [LICENSE](LICENSE)
