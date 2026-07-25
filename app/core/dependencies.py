@@ -3,6 +3,7 @@ from fastapi import Depends
 from app.repositories.postgres_todo_repository import PostgresTodoRepository
 from app.repositories.postgres_user_repository import PostgresUserRepository
 from app.repositories.transcript_repository import TranscriptRepository
+from app.repositories.session_repository import SessionRepository
 
 from app.services.todo_service import TodoService
 from app.services.transcript_service import TranscriptService
@@ -10,6 +11,7 @@ from app.services.user_service import UserService
 from app.services.storage_service import StorageService
 from app.services.etl.etl_service import ETLService
 from app.services.retrieval.retrieval_service import RetrievalService
+from app.services.session.session_service import SessionService
 
 from app.database.database import get_db
 from app.database.chroma import transcript_collection, chroma_client
@@ -63,3 +65,14 @@ def get_chroma_client():
 
 def get_transcript_collection():
     return transcript_collection
+
+def get_session_repository(
+    db=Depends(get_db),
+):
+    return SessionRepository(db)
+
+def get_session_service(
+    session_repository=Depends(get_session_repository),
+    transcript_repository=Depends(get_transcript_repository),
+):
+    return SessionService(session_repository, transcript_repository)

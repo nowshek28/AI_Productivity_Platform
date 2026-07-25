@@ -110,6 +110,11 @@ class UserModel(Base):
         back_populates="user"
     )
 
+    sessions: Mapped[list["SessionModel"]] = relationship(
+        "SessionModel",
+        back_populates="user"
+    )
+
 
 class TranscriptModel(Base):
     __tablename__ = "transcripts"
@@ -189,6 +194,11 @@ class TranscriptModel(Base):
         back_populates="transcript"
     )
 
+    sessions: Mapped[list["SessionModel"]] = relationship(
+        "SessionModel",
+        back_populates="transcript"
+    )
+
 class SessionModel(Base):
     __tablename__ = "sessions"
 
@@ -234,7 +244,46 @@ class SessionModel(Base):
         back_populates="sessions"
     )
 
+    chat_messages: Mapped[list["ChatMessageModel"]] = relationship(
+        "ChatMessageModel",
+        back_populates="session"
+    )
+
     transcript: Mapped["TranscriptModel"] = relationship(
         "TranscriptModel",
         back_populates="sessions"
+    )
+
+class ChatMessageModel(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid4())
+    )
+
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("sessions.id"),
+        nullable=False
+    )
+
+    role: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    content: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utcnow
+    )
+
+    session: Mapped["SessionModel"] = relationship(
+        "SessionModel",
+        back_populates="chat_messages"
     )
