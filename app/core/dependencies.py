@@ -14,6 +14,10 @@ from app.services.etl.etl_service import ETLService
 from app.services.retrieval.retrieval_service import RetrievalService
 from app.services.session.session_service import SessionService
 from app.services.session.chatmessage_service import ChatMessageService
+from app.services.reranking.cross_encoder_service import CrossEncoderService
+from app.services.embeddings.embedding_service import EmbeddingService
+from app.services.vector_store.vectorstore_service import VectorStoreService
+from app.services.llm.llm_service import LLMService
 
 from app.database.database import get_db
 from app.database.chroma import transcript_collection, chroma_client
@@ -59,8 +63,38 @@ def get_transcript_service(
 ):
     return TranscriptService(transcript_repository, todo_repository, storage_service, etl_service)
 
-def get_retrieval_service():
-    return RetrievalService()
+embedding_service = EmbeddingService()
+cross_encoder_service = CrossEncoderService()
+vector_store_service = VectorStoreService()
+llm_service = LLMService()
+
+def get_embedding_service():
+    return embedding_service
+
+
+def get_cross_encoder_service():
+    return cross_encoder_service
+
+
+def get_vector_store_service():
+    return vector_store_service
+
+
+def get_llm_service():
+    return llm_service
+
+def get_retrieval_service(
+    embedding_service=Depends(get_embedding_service),
+    vector_store_service=Depends(get_vector_store_service),
+    cross_encoder_service=Depends(get_cross_encoder_service),
+    llm_service=Depends(get_llm_service)
+):
+    return RetrievalService(
+        embedding_service=embedding_service,
+        vector_store=vector_store_service,
+        cross_encoder_service=cross_encoder_service,
+        llm_service=llm_service,
+    )
 
 def get_chroma_client():
     return chroma_client

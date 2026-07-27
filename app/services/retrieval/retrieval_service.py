@@ -2,26 +2,30 @@ import logging
 
 from uuid import UUID
 
-from app.services.reranking.cross_encoder_service import CrossEncoderService
-from app.services.embeddings.embedding_service import EmbeddingService
-from app.services.vector_store.vectorstore_service import VectorStoreService
 from app.services.retrieval.schemas import RetrievedChunk, ChatResponse, SearchResponse
 from app.services.builder.context_builder import ContextBuilder
 from app.services.builder.prompt_builder import PromptBuilder
-from app.services.llm.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
 
 class RetrievalService:
 
-    def __init__(self):
-        self.embedding_service = EmbeddingService()
-        self.vector_store = VectorStoreService()
-        self.cross_encoder_service = CrossEncoderService()
+    def __init__(
+            self,
+            embedding_service,
+            vector_store,
+            cross_encoder_service,
+            llm_service,
+            ):
+        self.embedding_service = embedding_service
+        self.vector_store = vector_store
+        self.cross_encoder_service = cross_encoder_service
+        self.llm_service = llm_service
+
+        
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
-        self.llm_service = LLMService()
 
     async def ask(
             self,
