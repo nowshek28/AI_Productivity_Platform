@@ -149,3 +149,34 @@ def delete_session(
             detail="Session not found."
         )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.post(
+    "/sessions/{session_id}/chat",
+    status_code=200,
+)
+def chat_in_session(
+    session_id: UUID,
+    query: SearchRequest,
+    session_service=Depends(get_session_service),
+    retrieval_service=Depends(get_retrieval_service),
+    current_user: CurrentUserResponse = Depends(get_current_db_user),
+):
+    """
+    Chat within a specific session.
+    """
+    # Logic will be created here to handle chat within a session, similar to the search_transcript function.
+
+
+@router.get(
+    "/sessions/{session_id}/messages",
+    status_code=200,
+)
+def list_session_messages(
+    session_id: UUID,
+    session_service=Depends(get_session_service),
+    current_user: CurrentUserResponse = Depends(get_current_db_user),
+):
+    """
+    List all messages in a specific session.
+    """
+    # Logic will be created here to list messages within a session, similar to the list_sessions function.
