@@ -25,15 +25,11 @@
 
 # Overview
 
-AI Productivity Platform is a production-oriented backend platform for transforming transcripts into searchable knowledge using Retrieval-Augmented Generation (RAG).
-
-The platform accepts transcript uploads, processes them asynchronously through an ETL pipeline, generates vector embeddings, stores them in ChromaDB, and enables semantic search powered by a hybrid retrieval pipeline consisting of dense vector search, Cross-Encoder reranking, contextual prompt generation, and Large Language Models.
-
-The system has been designed around clean architecture principles where every stage of the pipeline is independently replaceable, allowing future upgrades without affecting the overall workflow.
+AI Productivity Platform is a production-oriented backend platform that transforms transcripts into searchable knowledge using Retrieval-Augmented Generation (RAG) and supports persistent session-based AI conversations. Users can create conversation sessions for individual transcripts, interact with an AI assistant, and persist chat history for future conversational memory enhancements.
 
 Current Version:
 
-**Version 2.3**
+**Version 2.4**
 
 ---
 
@@ -85,44 +81,55 @@ Supported formats
 - Prompt Builder
 - Groq LLM Integration
 
+## Session-based Conversations
+
+- Create conversation sessions
+- Multiple sessions per transcript
+- Persistent chat history
+- AI chat endpoint
+- Delete sessions and chat history
+
 ---
 
 # System Architecture
 
 ```
-                           Client
-                              │
-                              ▼
-                      FastAPI REST API
-                              │
-        ┌─────────────────────┴─────────────────────┐
-        │                                           │
-        ▼                                           ▼
- Upload & ETL Pipeline                      Semantic Search
-        │                                           │
-        ▼                                           ▼
-     AWS S3                                  Retrieval Service
-        │                                           │
-        ▼                                           ▼
-   RabbitMQ Queue                           Query Embedding
-        │                                           │
-        ▼                                           ▼
-    Celery Worker                           ChromaDB Search
-        │                                           │
-        ▼                                           ▼
-  Text Extraction                        Cross Encoder Reranking
-        │                                           │
-        ▼                                           ▼
-   Text Cleaning                          Context Builder
-        │                                           │
-        ▼                                           ▼
- Recursive Chunking                       Prompt Builder
-        │                                           │
-        ▼                                           ▼
- Embedding Service                            Groq LLM
-        │                                           │
-        ▼                                           ▼
-    ChromaDB Storage                      AI Generated Answer
+                                      Client
+                                         │
+                                         ▼
+                                 FastAPI REST API
+                                         │
+             ┌───────────────────────────┼───────────────────────────┐
+             │                           │                           │
+             ▼                           ▼                           ▼
+     Upload & ETL Pipeline        Semantic Search            Session-based Chat
+             │                           │                           │
+             ▼                           ▼                           ▼
+          AWS S3                 Retrieval Service             Chat Service
+             │                           │                  ┌────────┴────────┐
+             ▼                           │                  ▼                 ▼
+      RabbitMQ Queue                     │          Session Service   ChatMessage Service
+             │                           │                  │                 │
+             ▼                           ▼                  │                 │
+       Celery Worker             Query Embedding            │        Load / Save Messages
+             │                           │                  │                 │
+             ▼                           ▼                  │                 │
+      Text Extraction            ChromaDB Search            │                 │
+             │                           │                  │                 │
+             ▼                           ▼                  └────────┬────────┘
+       Text Cleaning         Cross Encoder Reranking                 │
+             │                           │                           │
+             ▼                           ▼                           │
+   Recursive Chunking           Context Builder                      │
+             │                           │                           │
+             ▼                           ▼                           │
+    Embedding Service            Prompt Builder ◄────────────────────┘
+             │                           │
+             ▼                           ▼
+      ChromaDB Storage                 Groq LLM
+                                         │
+                                         ▼
+                                AI Generated Answer
 ```
 
 ---
@@ -322,6 +329,10 @@ app
 │   ├── retrieval
 │   │   └── retrieval_service.py
 │   │
+│   ├── session
+│   │   ├── session_service.py
+│   │   └── chatmessage_service.py
+│   │
 │   ├── vector_store
 │   │   └── vectorstore_service.py
 │   │
@@ -458,6 +469,13 @@ Groq
 
 Designed to support multiple providers in the future without modifying retrieval logic.
 
+## Conversational AI
+
+- Create chat sessions
+- Store chat messages
+- Session-based AI conversations
+- Multiple conversations per transcript
+
 ---
 
 # Technologies
@@ -543,6 +561,30 @@ GET  /transcripts
 ```
 POST /transcripts/{transcript_id}/search
 ```
+
+## Conversational AI
+
+```
+POST /transcripts/{transcript_id}/sessions
+GET /transcripts/{transcript_id}/sessions
+GET /sessions/{session_id}
+DELETE /sessions/{session_id}
+
+POST /sessions/{session_id}/chat
+GET /sessions/{session_id}/messages
+```
+
+---
+
+## Roadmap
+
+### Version 2.5
+
+- Conversation memory
+- Conversation summaries
+- Last-N message retrieval
+- Memory-aware prompt building
+- Long-context conversations
 
 ---
 

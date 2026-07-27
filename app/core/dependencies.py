@@ -4,6 +4,7 @@ from app.repositories.postgres_todo_repository import PostgresTodoRepository
 from app.repositories.postgres_user_repository import PostgresUserRepository
 from app.repositories.transcript_repository import TranscriptRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.chatmessage_repository import ChatMessageRepository
 
 from app.services.todo_service import TodoService
 from app.services.transcript_service import TranscriptService
@@ -12,6 +13,7 @@ from app.services.storage_service import StorageService
 from app.services.etl.etl_service import ETLService
 from app.services.retrieval.retrieval_service import RetrievalService
 from app.services.session.session_service import SessionService
+from app.services.session.chatmessage_service import ChatMessageService
 
 from app.database.database import get_db
 from app.database.chroma import transcript_collection, chroma_client
@@ -76,3 +78,13 @@ def get_session_service(
     transcript_repository=Depends(get_transcript_repository),
 ):
     return SessionService(session_repository, transcript_repository)
+
+def get_chat_message_repository(
+    db=Depends(get_db),
+):
+    return ChatMessageRepository(db)
+
+def get_chat_message_service(
+    chat_message_repository=Depends(get_chat_message_repository),
+):
+    return ChatMessageService(chat_message_repository)

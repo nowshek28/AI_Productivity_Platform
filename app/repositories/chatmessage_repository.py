@@ -12,7 +12,6 @@ class ChatMessageRepository:
     def create(
             self,
             *,
-            id: UUID,
             session_id: UUID,
             role: str,
             content: str
@@ -22,7 +21,6 @@ class ChatMessageRepository:
         """
 
         chat_message = ChatMessageModel(
-            id=str(id),
             session_id=str(session_id),
             role=role,
             content=content
@@ -36,7 +34,6 @@ class ChatMessageRepository:
 
     def get_by_session_id(
             self,
-            id: UUID,
             session_id: UUID
     ) -> list[ChatMessageModel]:
         """
@@ -45,7 +42,6 @@ class ChatMessageRepository:
 
         return (
             self.db.query(ChatMessageModel)
-            .filter(ChatMessageModel.id == str(id))
             .filter(ChatMessageModel.session_id == str(session_id))
             .order_by(ChatMessageModel.created_at.asc())
             .all()
@@ -86,24 +82,22 @@ class ChatMessageRepository:
 
     def delete_by_session_id(
             self,
-            id: UUID,
             session_id: UUID
     ) -> bool:
         """
-        Delete a chat message by session ID and message ID.
+        Delete all chat messages by session ID.
         """
-
-        chat_message = (
+        chat_messages = (
             self.db.query(ChatMessageModel)
-            .filter(ChatMessageModel.id == str(id))
             .filter(ChatMessageModel.session_id == str(session_id))
-            .first()
+            .all()
         )
 
-        if not chat_message:
+        if not chat_messages:
             return False
 
-        self.db.delete(chat_message)
+        for chat_message in chat_messages:
+            self.db.delete(chat_message)
         self.db.commit()
 
         return True
