@@ -72,13 +72,17 @@ class ChatMessageRepository:
         Retrieve the last N chat messages for a specific session.
         """
 
-        return (
+        messages = (
             self.db.query(ChatMessageModel)
             .filter(ChatMessageModel.session_id == str(session_id))
             .order_by(ChatMessageModel.created_at.desc())
             .limit(n)
             .all()
         )
+
+        messages.reverse()
+
+        return messages
 
     def delete_by_session_id(
             self,
@@ -102,4 +106,17 @@ class ChatMessageRepository:
 
         return True
 
+    def count_total_messages(
+            self,
+            session_id: UUID
+    ) -> int:
+        """
+        Count the total number of chat messages for a specific session.
+        """
+
+        return (
+            self.db.query(ChatMessageModel)
+            .filter(ChatMessageModel.session_id == str(session_id))
+            .count()
+        )
     

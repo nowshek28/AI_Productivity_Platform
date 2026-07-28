@@ -1,6 +1,7 @@
 import logging
 
 from app.prompts.transcript_qa import TRANSCRIPT_QA_SYSTEM_PROMPT
+from app.schemas.chatmessage import ConversationContext
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ class PromptBuilder:
             self,
             query: str,
             context: str,
+            conversation_context: ConversationContext | None = None,
     ) -> str:
         """
         Builds a prompt by combining the query and context.
@@ -53,6 +55,18 @@ class PromptBuilder:
     ) -> str:
         """
         Build the user prompt.
+        """
+        """
+        Conversation Summary
+        --------------------
+        <summary or "No previous summary available">
+
+        Recent Conversation
+        --------------------
+        User: ...
+        Assistant: ...
+        User: ...
+        Assistant: ...
         """
 
         return (

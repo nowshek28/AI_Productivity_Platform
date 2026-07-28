@@ -110,3 +110,15 @@ class ChatMessageService:
             )
 
         return success
+
+    def count_total_messages(
+        self,
+        *,
+        session_id: UUID
+    ) -> int:
+        """
+        Count the total number of chat messages for a given session ID.
+        """
+        return self.chatmessage_repository.count_total_messages(
+            session_id=session_id
+        )

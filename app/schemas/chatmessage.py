@@ -65,3 +65,7 @@ class ChatResponse(BaseModel):
 class ChatSessionResponse(BaseModel):
     user_message: ChatMessageResponse
     ai_message: ChatResponse
+
+class ConversationContext(BaseModel):
+    summary: str | None
+    recent_messages: list[ChatMessageResponse]

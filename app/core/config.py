@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     LLM_MODEL: str
 
+    CHAT_SUMMARIZATION_THRESHOLD: int
+    CHAT_RECENT_MESSAGE_LIMIT: int
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
