@@ -7,6 +7,12 @@ from app.services.session.session_service import SessionService
 from app.services.session.chatmessage_service import ChatMessageService
 from app.services.llm.llm_service import LLMService
 
+from app.repositories.chatmessage_repository import ChatMessageRepository
+from app.repositories.session_repository import SessionRepository
+from app.repositories.transcript_repository import TranscriptRepository
+
+from app.database.database import get_db
+
 logger = logging.getLogger(__name__)
 
 @celery_app.task(name="summarize_conversation_memory")
@@ -25,11 +31,18 @@ def summarize_conversation_memory(
     
 
     # Initialize services
-    chatmessage_service = ChatMessageService()
-    session_service = SessionService()
+    db = next(get_db())
+
+    chatmessage_service = ChatMessageService(
+        chatmessage_repository=ChatMessageRepository(db=db)
+    )
+    session_service = SessionService(
+        session_repository=SessionRepository(db=db),
+        transcript_repository=TranscriptRepository(db=db)
+    )
     llm_service = LLMService()
     conversation_memory_service = ConversationMemoryService(
-                chatmessage_service=chatmessage_service,
+                chat_message_service=chatmessage_service,
                 session_service=session_service,
                 llm_service=llm_service
             )
@@ -37,7 +50,7 @@ def summarize_conversation_memory(
     try:
         
         # Get the messages for the session
-        messages = conversation_memory_service.get_summary_context_for_Chats(
+        messages = conversation_memory_service.build_summary_messages(
             session_id=session_id,
             user_id=user_id
         )

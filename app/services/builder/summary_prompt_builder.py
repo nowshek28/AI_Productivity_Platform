@@ -8,7 +8,7 @@ class SummaryPromptBuilder:
 
     def build_chat_summary(
             self,
-            previous_summmary: str,
+            previous_summary: str,
             recent_messages: str
         ) -> list[dict]:
         """
@@ -25,7 +25,7 @@ class SummaryPromptBuilder:
                 {
                     "role": "user",
                     "content": self._build_user_prompt(
-                        previous_summmary=previous_summmary,
+                        previous_summary=previous_summary,
                         recent_messages=recent_messages,
                     ),
                 },
@@ -47,7 +47,7 @@ class SummaryPromptBuilder:
 
     def _build_user_prompt(
         self,
-        previous_summmary: str,
+        previous_summary: str,
         recent_messages: str
     ) -> str:
         """
@@ -82,7 +82,7 @@ class SummaryPromptBuilder:
         return (
             "Existing Conversation Summary\n"
             "-----------------------------\n"
-            f"{previous_summmary}\n\n"
+            f"{previous_summary}\n\n"
             "-----------------------------\n\n"
             "New Conversation Messages\n"
             "-----------------------------\n"

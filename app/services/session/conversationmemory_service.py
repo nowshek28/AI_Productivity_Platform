@@ -58,13 +58,13 @@ class ConversationMemoryService:
 
             #normalize the context of last n messages to strings
             last_n_messages_str = self._format_messages(
-                messages=[message.dict() for message in context.last_n_messages]
+                messages=[message.dict() for message in context.recent_messages]
             )
 
             # format the context into a prompt for the LLM
             messages = self.summary_prompt_builder.build_chat_summary(
-                summary=context.summary,
-                last_n_messages=last_n_messages_str
+                previous_summary=context.summary,
+                recent_messages=last_n_messages_str
             )
 
             return messages
@@ -133,7 +133,7 @@ class ConversationMemoryService:
         #return the summary and list of last N messages as a ConversationContext object
         return ConversationContext(
             summary=summary,
-            last_n_messages=ChatMessageResponseList
+            recent_messages=ChatMessageResponseList
         )
 
     def _format_messages(

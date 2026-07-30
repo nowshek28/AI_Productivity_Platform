@@ -21,7 +21,6 @@ from app.services.vector_store.vectorstore_service import VectorStoreService
 from app.services.llm.llm_service import LLMService
 
 from app.database.database import get_db
-from app.services.summary.summary import summarize_conversation_chat
 from app.database.chroma import transcript_collection, chroma_client
 
 
@@ -135,8 +134,3 @@ def get_conversation_memory_service(
         session_service=session_service,
         llm_service=llm_service
     )
-
-def get_summary_service(
-    conversation_memory_service=Depends(get_conversation_memory_service),
-):
-    return summarize_conversation_chat()
