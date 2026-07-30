@@ -216,5 +216,52 @@ class SessionService:
 
         return transcript_id
 
+    def get_summary_by_session_id(
+        self,
+        session_id: UUID,
+        user_id: UUID
+    ) -> str | None:
+        """
+        Retrieve the summary associated with a specific session.
+        """
+        summary = self.session_repository.get_summary_by_session_id(
+            session_id=session_id,
+            user_id=user_id
+        )
+
+        if summary is None:
+            logger.warning(
+                "Summary not found for session %s and user %s.",
+                session_id,
+                user_id
+            )
+            return None
+
+        return summary
+
+    def update_summary_by_session_id(
+        self,
+        session_id: UUID,
+        user_id: UUID,
+        summary: str
+    ) -> SessionResponse | None:
+        """
+        Update the summary for a specific session.
+        """
+        session_model = self.session_repository.update_summary_by_session_id(
+            session_id=session_id,
+            user_id=user_id,
+            summary=summary
+        )
+
+        if session_model is None:
+            logger.warning(
+                "Session %s not found for user %s.",
+                session_id,
+                user_id
+            )
+            return None
+
+        return self._to_response(session_model)
     
     

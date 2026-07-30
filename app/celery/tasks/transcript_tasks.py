@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="process_transcript")
-def process_transcript(transcript_id: str, user_id: str):
+def process_transcript(
+    transcript_id: str, 
+    user_id: str
+    ):
     """
     Celery task to process a transcript.
 

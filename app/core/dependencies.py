@@ -6,6 +6,7 @@ from app.repositories.transcript_repository import TranscriptRepository
 from app.repositories.session_repository import SessionRepository
 from app.repositories.chatmessage_repository import ChatMessageRepository
 
+from app.services.session.conversationmemory_service import ConversationMemoryService
 from app.services.todo_service import TodoService
 from app.services.transcript_service import TranscriptService
 from app.services.user_service import UserService
@@ -20,6 +21,7 @@ from app.services.vector_store.vectorstore_service import VectorStoreService
 from app.services.llm.llm_service import LLMService
 
 from app.database.database import get_db
+from app.services.summary.summary import summarize_conversation_chat
 from app.database.chroma import transcript_collection, chroma_client
 
 
@@ -122,3 +124,19 @@ def get_chat_message_service(
     chat_message_repository=Depends(get_chat_message_repository),
 ):
     return ChatMessageService(chat_message_repository)
+
+def get_conversation_memory_service(
+    chat_message_service=Depends(get_chat_message_service),
+    session_service=Depends(get_session_service),
+    llm_service=Depends(get_llm_service),
+):
+    return ConversationMemoryService(
+        chat_message_service=chat_message_service,
+        session_service=session_service,
+        llm_service=llm_service
+    )
+
+def get_summary_service(
+    conversation_memory_service=Depends(get_conversation_memory_service),
+):
+    return summarize_conversation_chat()

@@ -15,3 +15,4 @@ celery_app.conf.update(
 )
 
 import app.celery.tasks.transcript_tasks
+import app.celery.tasks.chat_summary_tasks

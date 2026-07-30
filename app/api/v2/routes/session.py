@@ -12,8 +12,8 @@ from app.schemas.transcript import ProcessingStatus
 from app.core.config import settings
 
 from app.auth.dependencies import get_current_db_user
-from app.core.dependencies import get_chat_message_service, get_transcript_service
-from app.core.dependencies import get_retrieval_service
+from app.core.dependencies import get_chat_message_service, get_summary_service, get_transcript_service
+from app.core.dependencies import get_retrieval_service, get_session_service, get_conversation_memory_service
 from app.core.dependencies import get_session_service
 
 logger = logging.getLogger(__name__)
@@ -178,6 +178,8 @@ async def chat_in_session(
     session_service=Depends(get_session_service),
     retrieval_service=Depends(get_retrieval_service),
     chatmessage_service=Depends(get_chat_message_service),
+    conversationmemory_service=Depends(get_conversation_memory_service),
+    summary_service=Depends(get_summary_service),
     current_user: CurrentUserResponse = Depends(get_current_db_user),
 ):
     """
@@ -227,6 +229,17 @@ async def chat_in_session(
     )
 
     logger.info(f"Chat message from AI saved for session {session_id}")
+
+    # Check for summarization threshold and update summary if needed
+    if conversationmemory_service.should_summarize(session_id=session_id, user_id=current_user.id):
+        logger.info(f"Summarization threshold reached for session {session_id}. Updating summary.")
+        try:
+            # Add Celery Task to update the summary asynchronously
+            summary_service(session_id=session_id, user_id=current_user.id)
+            logger.info(f"Starting summary update for session {session_id}.")
+        except Exception as e:
+            logger.exception(f"Error updating summary for session {session_id}: {e}")
+            raise RuntimeError(f"Error updating summary for session {session_id}: {e}")
 
     return ChatSessionResponse(
         user_message=ChatMessageResponse(

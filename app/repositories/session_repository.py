@@ -161,3 +161,50 @@ class SessionRepository:
             return None
 
         return UUID(session.transcript_id)
+
+    def get_summary_by_session_id(
+            self,
+            session_id: UUID,
+            user_id: UUID
+    ) -> str | None:
+        """
+        Retrieve the summary associated with a given session ID.
+        """
+
+        session = (
+            self.db.query(SessionModel)
+            .filter(SessionModel.id == str(session_id))
+            .filter(SessionModel.user_id == str(user_id))
+            .first()
+        )
+
+        if not session:
+            return None
+
+        return session.summary
+
+    def update_summary_by_session_id(
+            self,
+            session_id: UUID,
+            user_id: UUID,
+            summary: str
+    ) -> SessionModel | None:
+        """
+        Update the summary for a given session ID.
+        """
+
+        session = (
+            self.db.query(SessionModel)
+            .filter(SessionModel.id == str(session_id))
+            .filter(SessionModel.user_id == str(user_id))
+            .first()
+        )
+
+        if not session:
+            return None
+
+        session.summary = summary
+        self.db.commit()
+        self.db.refresh(session)
+
+        return session

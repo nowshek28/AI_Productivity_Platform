@@ -32,7 +32,7 @@ class LLMService:
             return self._generate_groq_response(messages)
         
         raise ValueError(f"Unsupported LLM provider: {self.provider}")
-    
+   
     def _generate_groq_response(
             self,
             messages: list[dict[str, str]],
