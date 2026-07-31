@@ -23,656 +23,609 @@
 
 ---
 
-# Overview
+## Project Overview
 
-AI Productivity Platform is a production-oriented backend platform that transforms transcripts into searchable knowledge using Retrieval-Augmented Generation (RAG) and supports persistent session-based AI conversations. Users can create conversation sessions for individual transcripts, interact with an AI assistant, and persist chat history for future conversational memory enhancements.
+AI Productivity Platform is a backend application that enables users to interact intelligently with their documents using Retrieval-Augmented Generation (RAG). The platform combines asynchronous document processing, semantic search, and conversational memory to deliver context-aware AI responses grounded in user-provided content.
 
-Current Version:
+The system follows a modular architecture built with **FastAPI**, where uploaded documents are processed through an asynchronous ETL pipeline, transformed into vector embeddings, and indexed in **ChromaDB** for efficient semantic retrieval. During conversations, relevant transcript chunks are combined with conversational context—including session summaries and recent chat history—to generate accurate, multi-turn responses using a Large Language Model (LLM).
 
-**Version 2.4**
+Key architectural principles include:
 
----
+* Asynchronous document processing using Celery and RabbitMQ
+* Modular service-oriented architecture
+* Retrieval-Augmented Generation (RAG) with semantic search and reranking
+* Persistent chat sessions with conversational memory
+* Background AI workflows for scalable processing
+* Extensible design for future AI capabilities such as transcript intelligence, task extraction, and sentiment analysis
+
+The project is designed as a production-oriented foundation for AI-powered knowledge management and productivity applications, emphasizing scalability, maintainability, and clean separation of responsibilities.
+
 
 # Key Features
 
-## Authentication
+## Document Processing
 
-- JWT Authentication
-- User Registration & Login
-- Protected APIs
-
-## Todo Management
-
-- Create Todo
-- Update Todo
-- Delete Todo
-- Transcript association
-
-## Transcript Management
-
-- Upload transcript files
-- AWS S3 storage
-- Metadata persistence
-- Background processing
-
-Supported formats
-
-- TXT
-- PDF
-- DOCX
-
-## Asynchronous ETL Pipeline
-
-- Celery Workers
-- RabbitMQ Queue
-- Text Extraction
-- Text Cleaning
-- Recursive Chunking
-- Embedding Generation
-- Metadata Preparation
-- ChromaDB Storage
-
-## Semantic Search
-
-- Dense Vector Retrieval
-- Metadata Filtering
-- Cross Encoder Reranking
-- Context Builder
-- Prompt Builder
-- Groq LLM Integration
-
-## Session-based Conversations
-
-- Create conversation sessions
-- Multiple sessions per transcript
-- Persistent chat history
-- AI chat endpoint
-- Delete sessions and chat history
+* Asynchronous document processing pipeline using Celery and RabbitMQ
+* Automatic text extraction and cleaning
+* Recursive text chunking for efficient retrieval
+* Vector embedding generation and storage in ChromaDB
+* Scalable ETL workflow for transcript ingestion
 
 ---
+
+## Retrieval-Augmented Generation (RAG)
+
+* Semantic search over indexed transcript content
+* Cross-encoder reranking for improved retrieval quality
+* Context-aware prompt construction
+* AI-generated responses grounded in retrieved transcript context
+
+---
+
+## Conversational Memory
+
+* Persistent chat sessions
+* Conversation history stored in PostgreSQL
+* Rolling conversation summarization
+* Conversation-aware prompt augmentation
+* Multi-turn question answering with contextual memory
+
+---
+
+## Background Processing
+
+* Asynchronous document indexing
+* Background conversation summarization
+* Celery worker architecture with RabbitMQ task queue
+* Non-blocking processing for long-running AI tasks
+
+---
+
+## Backend Architecture
+
+* Layered service and repository architecture
+* Modular and extensible codebase
+* PostgreSQL for relational data persistence
+* ChromaDB for vector storage and retrieval
+* Environment-based application configuration
+
+---
+
+## Extensibility
+
+The platform is designed to support future AI capabilities, including:
+
+* Hierarchical transcript summarization
+* Transcript sentiment analysis
+* Task and action item extraction
+* Keyword and entity extraction
+* User-specific memory and personalization
+
+---
+
 
 # System Architecture
 
-```
-                                      Client
-                                         │
-                                         ▼
-                                 FastAPI REST API
-                                         │
-             ┌───────────────────────────┼───────────────────────────┐
-             │                           │                           │
-             ▼                           ▼                           ▼
-     Upload & ETL Pipeline        Semantic Search            Session-based Chat
-             │                           │                           │
-             ▼                           ▼                           ▼
-          AWS S3                 Retrieval Service             Chat Service
-             │                           │                  ┌────────┴────────┐
-             ▼                           │                  ▼                 ▼
-      RabbitMQ Queue                     │          Session Service   ChatMessage Service
-             │                           │                  │                 │
-             ▼                           ▼                  │                 │
-       Celery Worker             Query Embedding            │        Load / Save Messages
-             │                           │                  │                 │
-             ▼                           ▼                  │                 │
-      Text Extraction            ChromaDB Search            │                 │
-             │                           │                  │                 │
-             ▼                           ▼                  └────────┬────────┘
-       Text Cleaning         Cross Encoder Reranking                 │
-             │                           │                           │
-             ▼                           ▼                           │
-   Recursive Chunking           Context Builder                      │
-             │                           │                           │
-             ▼                           ▼                           │
-    Embedding Service            Prompt Builder ◄────────────────────┘
-             │                           │
-             ▼                           ▼
-      ChromaDB Storage                 Groq LLM
-                                         │
-                                         ▼
-                                AI Generated Answer
-```
+                                    Client
+                                       │
+                                       ▼
+                               FastAPI REST API
+                                       │
+                ┌──────────────────────┴──────────────────────┐
+                │                                             │
+                ▼                                             ▼
+       Document Processing                           Conversational RAG
+                │                                             │
+                ▼                                             ▼
+          Upload Transcript                          Chat Session Request
+                │                                             │
+                ▼                                             ▼
+              AWS S3                                Session Management
+                │                                             │
+                ▼                                             ▼
+          RabbitMQ Queue                         Conversation Memory Service
+                │                                             │
+                ▼                                             ▼
+          Celery Worker                     ┌──────────────────┴──────────────────┐
+                │                           │                                     │
+                ▼                           ▼                                     ▼
+         Text Extraction           Session Summary                     Recent Messages
+                │                           │                                     │
+                ▼                           └──────────────────┬──────────────────┘
+         Text Cleaning                                         │
+                │                                               ▼
+                ▼                                     Retrieval Service
+      Recursive Chunking                                      │
+                │                                              ▼
+                ▼                                     Query Embedding
+      Embedding Generation                                    │
+                │                                              ▼
+                ▼                                     ChromaDB Search
+         ChromaDB Storage                                     │
+                                                              ▼
+                                                  Cross Encoder Reranking
+                                                              │
+                                                              ▼
+                                                      Prompt Builder
+                                                              │
+                    ┌─────────────────────────────────────────┼────────────────────────────────────────┐
+                    │                                         │                                        │
+                    ▼                                         ▼                                        ▼
+          Conversation Summary                    Recent Conversation                    Retrieved Transcript Context
+                    └─────────────────────────────────────────┬────────────────────────────────────────┘
+                                                              │
+                                                              ▼
+                                                           Groq LLM
+                                                              │
+                                                              ▼
+                                                     AI Generated Response
+                                                              │
+                                                              ▼
+                                                  Save Chat Messages (PostgreSQL)
+                                                              │
+                                                              ▼
+                                            Celery Conversation Summarization
+                                                              │
+                                                              ▼
+                                               Update Session Summary (PostgreSQL)
 
----
 
-# ETL Workflow
-
-The transcript processing pipeline executes asynchronously after every successful upload.
-
-```
-Client
-
-    │
-
-Upload Transcript
-
-    │
-
-AWS S3 Storage
-
-    │
-
-Save Transcript Metadata
-
-    │
-
-Status = UPLOADED
-
-    │
-
-RabbitMQ
-
-    │
-
-Celery Worker
-
-    │
-
-Status = PROCESSING
-
-    │
-
-Download Transcript
-
-    │
-
-Extract Text
-
-    │
-
-Clean Text
-
-    │
-
-Recursive Chunking
-
-    │
-
-Generate Embeddings
-
-    │
-
-Prepare Metadata
-
-    │
-
-Store in ChromaDB
-
-    │
-
-Status = READY
-```
-
----
-
-# Semantic Search Workflow
-
-The semantic search pipeline retrieves the most relevant transcript chunks before generating an answer.
-
-```
-User Question
-
-      │
-
-Generate Query Embedding
-
-      │
-
-Similarity Search
-
-      │
-
-Retrieve Top 20 Chunks
-
-      │
-
-Cross Encoder Reranking
-
-      │
-
-Select Top 5 Chunks
-
-      │
-
-Context Builder
-
-      │
-
-Prompt Builder
-
-      │
-
-Groq LLM
-
-      │
-
-Generated Answer
-```
-
----
-
-# RAG Pipeline
-
-The Retrieval-Augmented Generation workflow combines semantic retrieval with LLM reasoning.
-
-```
-Question
-
-     │
-
-EmbeddingService
-
-     │
-
-VectorStoreService
-
-     │
-
-CrossEncoderService
-
-     │
-
-ContextBuilder
-
-     │
-
-PromptBuilder
-
-     │
-
-LLMService
-
-     │
-
-Groq
-
-     │
-
-Answer
-```
-
----
 
 # Project Structure
 
-```
-app
-├── api
-├── auth
-├── core
-├── db
-├── models
-├── repositories
-├── schemas
-├── services
-│   ├── builder
-│   │   ├── context_builder.py
-│   │   └── prompt_builder.py
-│   │
-│   ├── embeddings
-│   │   └── embedding_service.py
-│   │
-│   ├── extraction
-│   │   └── text_extractor.py
-│   │
-│   ├── cleaning
-│   │   └── text_cleaner.py
-│   │
-│   ├── chunking
-│   │   └── text_chunker.py
-│   │
-│   ├── llm
-│   │   └── llm_service.py
-│   │
-│   ├── reranking
-│   │   └── cross_encoder_service.py
-│   │
-│   ├── retrieval
-│   │   └── retrieval_service.py
-│   │
-│   ├── session
-│   │   ├── session_service.py
-│   │   └── chatmessage_service.py
-│   │
-│   ├── vector_store
-│   │   └── vectorstore_service.py
-│   │
-│   ├── transcript_service.py
-│   ├── todo_service.py
-│   └── user_service.py
+```text
+app/
+├── api/                    # REST API endpoints
+│   ├── v1/
+│   └── v2/
 │
-├── workers
-├── utils
-└── main.py
+├── celery/                 # Background task workers
+│   └── tasks/
+│
+├── core/                   # Configuration, logging, dependencies
+│
+├── database/               # Database configuration
+│
+├── models/                 # SQLAlchemy models
+│
+├── repositories/           # Data access layer
+│
+├── schemas/                # Pydantic request/response models
+│
+├── services/
+│   ├── auth/               # Authentication services
+│   ├── builder/            # Prompt builders
+│   ├── embeddings/         # Embedding generation
+│   ├── etl/                # Document processing pipeline
+│   ├── llm/                # LLM integration
+│   ├── retrieval/          # RAG retrieval pipeline
+│   ├── session/            # Session and conversation memory
+│   ├── storage/            # AWS S3 storage
+│   └── vectorstore/        # ChromaDB operations
+│
+├── prompts/                # Prompt templates
+│
+└── utils/                  # Shared utility functions
+
+alembic/                    # Database migrations
+tests/                      # Unit and integration tests
+```
+
+
+# Processing Pipeline
+
+The platform consists of two primary processing pipelines:
+
+* **Upload Pipeline** – Responsible for processing uploaded transcripts and preparing them for semantic search.
+* **Chat Pipeline** – Responsible for handling conversational requests using Retrieval-Augmented Generation (RAG) and conversational memory.
+
+---
+
+## Upload Pipeline
+
+The upload pipeline processes transcripts asynchronously to ensure the API remains responsive.
+
+```text
+Client
+    │
+    ▼
+Upload Transcript
+    │
+    ▼
+Store File (AWS S3)
+    │
+    ▼
+Create Transcript Record (PostgreSQL)
+    │
+    ▼
+Queue ETL Task (RabbitMQ)
+    │
+    ▼
+Celery Worker
+    │
+    ▼
+Text Extraction
+    │
+    ▼
+Text Cleaning
+    │
+    ▼
+Recursive Chunking
+    │
+    ▼
+Embedding Generation
+    │
+    ▼
+Store Embeddings (ChromaDB)
+    │
+    ▼
+Update Transcript Status → READY
 ```
 
 ---
 
-# Core Components
+## Chat Pipeline
 
-## TextExtractor
+The chat pipeline combines conversational memory with semantic retrieval to generate context-aware responses.
 
-Responsible only for extracting text from uploaded documents.
-
-Current support
-
-- TXT
-- PDF
-- DOCX
-
-Designed for easy extension to OCR, images, and additional document formats.
-
----
-
-## TextCleaner
-
-Normalizes extracted text before chunking.
-
-Current operations
-
-- Lowercase conversion
-- HTML removal
-- URL removal
-- Emoji removal
-- Special character cleanup
-- Whitespace normalization
-
----
-
-## TextChunker
-
-Splits cleaned documents into overlapping chunks using
-
-```
-RecursiveCharacterTextSplitter
-```
-
-This strategy preserves contextual information while remaining flexible for future chunking approaches.
-
----
-
-## EmbeddingService
-
-Generates dense vector embeddings.
-
-Current model
-
-```
-sentence-transformers/all-MiniLM-L6-v2
+```text
+Client
+    │
+    ▼
+Chat Request
+    │
+    ▼
+Validate Session
+    │
+    ▼
+Retrieve Conversation Context
+    │
+    ├── Session Summary
+    └── Recent Messages
+    │
+    ▼
+Semantic Retrieval
+    │
+    ├── Query Embedding
+    ├── ChromaDB Search
+    └── Cross Encoder Reranking
+    │
+    ▼
+Prompt Construction
+    │
+    ├── Conversation Summary
+    ├── Recent Messages
+    ├── Retrieved Transcript Chunks
+    └── User Query
+    │
+    ▼
+LLM Response
+    │
+    ▼
+Store User & AI Messages (PostgreSQL)
+    │
+    ▼
+Check Summarization Threshold
+    │
+    ▼
+Queue Background Summary Task (Celery)
+    │
+    ▼
+Update Session Summary (PostgreSQL)
 ```
 
-The embedding provider is configurable through environment variables.
 
----
+# Technology Stack
 
-## VectorStoreService
+| Layer                | Technology              | Purpose                                                               |
+| -------------------- | ----------------------- | --------------------------------------------------------------------- |
+| Programming Language | Python 3.13             | Backend development                                                   |
+| Web Framework        | FastAPI                 | REST API and dependency injection                                     |
+| Data Validation      | Pydantic v2             | Request and response validation                                       |
+| ORM                  | SQLAlchemy              | Database abstraction and ORM                                          |
+| Database             | PostgreSQL              | Persistent storage for users, transcripts, sessions, and chat history |
+| Database Migrations  | Alembic                 | Schema versioning and migrations                                      |
+| Object Storage       | AWS S3                  | Transcript file storage                                               |
+| Task Queue           | RabbitMQ                | Message broker for asynchronous processing                            |
+| Background Workers   | Celery                  | ETL and AI background tasks                                           |
+| Vector Database      | ChromaDB                | Semantic vector storage and retrieval                                 |
+| Embedding Model      | BAAI/bge-small-en-v1.5  | Dense vector embedding generation                                     |
+| Reranking Model      | BAAI/bge-reranker-base  | Cross-encoder reranking of retrieved chunks                           |
+| Large Language Model | Groq API                | Retrieval-Augmented Generation (RAG) and conversational summarization |
+| Containerization     | Docker & Docker Compose | Development and deployment environment                                |
 
-Responsible for
 
-- Metadata preparation
-- Vector storage
-- Semantic retrieval
-
-Current vector database
-
-```
-ChromaDB PersistentClient
-```
-
----
-
-## CrossEncoderService
-
-Improves retrieval quality by reranking vector search results.
-
-Current model
-
-```
-cross-encoder/ms-marco-MiniLM-L-6-v2
-```
-
----
-
-## ContextBuilder
-
-Builds structured transcript context for the LLM.
-
-Responsibilities
-
-- Sort retrieved chunks
-- Prepare formatted context
-- Ready for neighboring chunk expansion
-
----
-
-## PromptBuilder
-
-Constructs structured prompts for chat-based LLMs.
-
-Responsibilities
-
-- System Prompt
-- User Prompt
-- Transcript Context
-- User Query
-
----
-
-## LLMService
-
-Responsible for all interactions with external language models.
-
-Current provider
-
-```
-Groq
-```
-
-Designed to support multiple providers in the future without modifying retrieval logic.
-
-## Conversational AI
-
-- Create chat sessions
-- Store chat messages
-- Session-based AI conversations
-- Multiple conversations per transcript
-
----
-
-# Technologies
-
-| Category | Technology |
-|-----------|------------|
-| Language | Python 3.13 |
-| API | FastAPI |
-| ORM | SQLAlchemy 2.x |
-| Database | PostgreSQL |
-| Object Storage | AWS S3 |
-| Queue | RabbitMQ |
-| Background Tasks | Celery |
-| Vector Database | ChromaDB |
-| Embeddings | Sentence Transformers |
-| Reranking | Cross Encoder |
-| LLM | Groq |
-| Containers | Docker & Docker Compose |
-
----
-
-# Current Capabilities
-
-## User Management
-
-- Registration
-- Authentication
-- JWT Authorization
-
-## Todo Management
-
-- CRUD Operations
-
-## Transcript Processing
-
-- Upload transcripts
-- Store in AWS S3
-- Background ETL
-- Automatic embeddings
-- Vector indexing
-
-## Semantic Retrieval
-
-- Dense Vector Search
-- Metadata filtering
-- Cross Encoder reranking
-
-## Retrieval-Augmented Generation
-
-- Context creation
-- Prompt generation
-- AI-generated answers from transcript knowledge
-
----
 
 # API Overview
 
+The platform exposes a RESTful API organized into resource-based endpoints.
+
 ## Authentication
 
-```
-POST /auth/register
-POST /auth/login
-```
+| Method | Endpoint                | Description                               |
+| ------ | ----------------------- | ----------------------------------------- |
+| POST   | `/api/v1/auth/register` | Register a new user                       |
+| POST   | `/api/v1/auth/login`    | Authenticate and obtain an access token   |
+| GET    | `/api/v1/auth/me`       | Retrieve the authenticated user's profile |
 
-## Todo
+---
 
-```
-GET    /todos
-POST   /todos
-PUT    /todos/{id}
-DELETE /todos/{id}
-```
+## Transcripts
 
-## Transcript
+| Method | Endpoint                              | Description                                  |
+| ------ | ------------------------------------- | -------------------------------------------- |
+| POST   | `/api/v2/transcripts/upload`          | Upload a transcript for processing           |
+| GET    | `/api/v2/transcripts`                 | List uploaded transcripts                    |
+| GET    | `/api/v2/transcripts/{transcript_id}` | Retrieve transcript details                  |
+| DELETE | `/api/v2/transcripts/{transcript_id}` | Delete a transcript and associated resources |
 
-```
-POST /transcripts/upload
-GET  /transcripts
-```
+---
+
+## Sessions
+
+| Method | Endpoint                        | Description                            |
+| ------ | ------------------------------- | -------------------------------------- |
+| POST   | `/api/v2/sessions`              | Create a chat session for a transcript |
+| GET    | `/api/v2/sessions`              | List user chat sessions                |
+| GET    | `/api/v2/sessions/{session_id}` | Retrieve session details               |
+| DELETE | `/api/v2/sessions/{session_id}` | Delete a session and its chat history  |
+
+---
+
+## Chat
+
+| Method | Endpoint                                 | Description                                            |
+| ------ | ---------------------------------------- | ------------------------------------------------------ |
+| POST   | `/api/v2/sessions/{session_id}/chat`     | Send a message and receive a context-aware AI response |
+| GET    | `/api/v2/sessions/{session_id}/messages` | Retrieve chat history for a session                    |
+
+---
 
 ## Semantic Search
 
-```
-POST /transcripts/{transcript_id}/search
-```
-
-## Conversational AI
-
-```
-POST /transcripts/{transcript_id}/sessions
-GET /transcripts/{transcript_id}/sessions
-GET /sessions/{session_id}
-DELETE /sessions/{session_id}
-
-POST /sessions/{session_id}/chat
-GET /sessions/{session_id}/messages
-```
+| Method | Endpoint                   | Description                                                    |
+| ------ | -------------------------- | -------------------------------------------------------------- |
+| POST   | `/api/v2/retrieval/search` | Perform transcript semantic search without conversation memory |
 
 ---
 
-## Roadmap
+## Interactive API Documentation
 
-### Version 2.5
+Once the application is running, the API documentation is available at:
 
-- Conversation memory
-- Conversation summaries
-- Last-N message retrieval
-- Memory-aware prompt building
-- Long-context conversations
+| Documentation | URL                           |
+| ------------- | ----------------------------- |
+| Swagger UI    | `http://localhost:8000/docs`  |
+| ReDoc         | `http://localhost:8000/redoc` |
 
----
 
 # Running the Project
 
-Clone the repository
+## Prerequisites
+
+Ensure the following software is installed:
+
+* Docker
+* Docker Compose
+* Git
+
+---
+
+## Clone the Repository
 
 ```bash
 git clone <repository-url>
+cd ai-productivity-platform
 ```
 
-Install dependencies
+---
 
-```bash
-pip install -r requirements.txt
+## Configure Environment Variables
+
+Create a `.env` file in the project root and configure the required environment variables.
+
+Example:
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=ai_productivity
+
+AWS_ACCESS_KEY_ID=<your-access-key>
+AWS_SECRET_ACCESS_KEY=<your-secret-key>
+AWS_S3_BUCKET=<your-bucket>
+
+GROQ_API_KEY=<your-groq-api-key>
+
+CHROMA_PERSIST_DIRECTORY=/app/chroma_db
 ```
 
-Run Docker
+> Refer to the `.env.example` file for the complete list of configuration options.
+
+---
+
+## Start the Application
+
+Build and start all services:
 
 ```bash
 docker compose up --build
 ```
 
-Start FastAPI
+To run the application in detached mode:
 
 ```bash
-uvicorn app.main:app --reload
+docker compose up -d --build
 ```
 
 ---
 
-# Environment Variables
+## Database Migration
 
-Example
+Apply database migrations after the services have started:
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
+---
+
+## Access the Application
+
+| Service     | URL                           |
+| ----------- | ----------------------------- |
+| FastAPI API | `http://localhost:8000`       |
+| Swagger UI  | `http://localhost:8000/docs`  |
+| ReDoc       | `http://localhost:8000/redoc` |
+
+---
+
+## Stop the Application
+
+```bash
+docker compose down
+```
+
+To remove containers, networks, and volumes:
+
+```bash
+docker compose down -v
+```
+
+
+# Configuration
+
+The application is configured using environment variables. Copy `.env.example` to `.env` and update the values according to your environment.
+
+```bash
+cp .env.example .env
+```
+
+The configuration is organized into the following categories:
+
+| Category            | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
+| Application         | General application settings, logging, and environment configuration |
+| Database            | PostgreSQL connection and database settings                          |
+| Authentication      | JWT secrets, token expiration, and authentication configuration      |
+| AWS S3              | Credentials and bucket configuration for transcript storage          |
+| Celery & RabbitMQ   | Background task processing and message broker configuration          |
+| ChromaDB            | Vector database persistence and connection settings                  |
+| Embedding Models    | Embedding model configuration and retrieval parameters               |
+| Reranking           | Cross-encoder reranking model and retrieval configuration            |
+| LLM                 | Groq API configuration and model selection                           |
+| ETL Pipeline        | Chunking strategy, overlap, and document processing settings         |
+| Conversation Memory | Chat history window and summarization thresholds                     |
+
+---
+
+## Example Configuration
 
 ```env
-DATABASE_URL=
+# Database
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=ai_productivity
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
 
-SECRET_KEY=
+# LLM
+GROQ_API_KEY=<your-api-key>
 
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_BUCKET_NAME=
+# AWS
+AWS_ACCESS_KEY_ID=<your-access-key>
+AWS_SECRET_ACCESS_KEY=<your-secret-key>
+AWS_S3_BUCKET=<your-bucket>
 
-RABBITMQ_URL=
-
-EMBEDDING_PROVIDER=huggingface
-EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-
-RERANK_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
-
-CHROMA_DB_PATH=./chroma_db
-CHROMA_COLLECTION_NAME=transcripts
-
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.3-70b-versatile
-GROQ_API_KEY=
+# Conversation Memory
+CHAT_SUMMARIZATION_THRESHOLD=20
+LAST_N_MESSAGES=6
 ```
 
----
+> **Note:** The complete list of supported configuration variables is available in the `.env.example` file. New configuration options should be added there to keep this documentation concise.
 
-# Logging
 
-Structured logging is enabled throughout the platform.
+# Current Capabilities
 
-Logging includes
+The platform currently provides the following functionality:
 
-- API requests
-- ETL processing
-- Background workers
-- Embedding generation
-- Vector storage
-- Retrieval
-- LLM requests
-- Error tracking
+### Authentication
 
----
+* User registration and authentication
+* JWT-based authorization
+* Protected API endpoints
 
-# Design Principles
+### Document Management
 
-- Modular Architecture
-- Single Responsibility Principle
-- Service-Oriented Design
-- Replaceable Components
-- Configurable AI Providers
-- Production-Oriented ETL
-- Asynchronous Processing
-- Retrieval-Augmented Generation
+* Transcript upload and storage
+* Asynchronous document processing
+* Transcript lifecycle management
+
+### Retrieval-Augmented Generation (RAG)
+
+* Semantic search over transcript content
+* Cross-encoder reranking
+* Context-aware question answering
+* AI responses grounded in retrieved transcript chunks
+
+### Conversational AI
+
+* Persistent chat sessions
+* Conversation history stored in PostgreSQL
+* Rolling conversation summarization
+* Multi-turn conversations with conversational memory
+* Background summary generation using Celery
+
+### Infrastructure
+
+* PostgreSQL for relational data
+* ChromaDB for vector storage
+* RabbitMQ and Celery for asynchronous processing
+* Docker-based development environment
+* RESTful API with OpenAPI documentation
+
+
+# Roadmap
+
+The platform is actively evolving with a focus on expanding AI capabilities while maintaining a modular and scalable architecture.
+
+## Transcript Intelligence
+
+* Hierarchical transcript summarization
+* Transcript sentiment analysis
+* Task and action item extraction
+* Keyword and entity extraction
+* Transcript metadata generation
+
+## Conversational AI
+
+* User-level long-term memory
+* Personalized conversation context
+* Token usage tracking and quota management
+* Memory optimization strategies
+
+## Retrieval
+
+* Hybrid search (vector + keyword)
+* Metadata-aware retrieval
+* Query expansion and rewriting
+* Advanced retrieval optimization
+
+## AI Workflows
+
+* Multi-stage AI processing pipelines
+* Configurable background AI tasks
+* Automated transcript analysis
+* Extensible prompt management
+
+## Platform Enhancements
+
+* API versioning and improved developer experience
+* Monitoring and observability
+* Performance optimization
+* Comprehensive unit and integration test coverage
+* Production deployment and scaling improvements
+
 
 ---
 
@@ -680,4 +633,4 @@ Logging includes
 
 This project is licensed under the **Apache License 2.0**.
 
-See the [LICENSE](LICENSE)
+See the [LICENSE](LICENSE) file for details.
