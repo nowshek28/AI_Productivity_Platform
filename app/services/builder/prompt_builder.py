@@ -10,6 +10,8 @@ class PromptBuilder:
             self,
             query: str,
             context: str,
+            summary: str | None = None,
+            message_history: str | None = None
     ) -> str:
         """
         Builds a prompt by combining the query and context.
@@ -28,6 +30,8 @@ class PromptBuilder:
                     "content": self._build_user_prompt(
                         query=query,
                         context=context,
+                        summary=summary,
+                        message_history=message_history
                     ),
                 },
             ]
@@ -50,27 +54,30 @@ class PromptBuilder:
         self,
         query: str,
         context: str,
+        summary: str | None = None,
+        message_history: str | None = None,
     ) -> str:
         """
         Build the user prompt.
         """
-        """
-        Conversation Summary
-        --------------------
-        <summary or "No previous summary available">
-
-        Recent Conversation
-        --------------------
-        User: ...
-        Assistant: ...
-        User: ...
-        Assistant: ...
-        """
+       
+        summary = summary or "No previous conversation summary available."
+        message_history = message_history or "No recent conversation history."
 
         return (
-            "Transcript Context:\n"
+            "Conversation Summary:\n"
+            "---------------------\n"
+            f"{summary}\n\n"
+
+            "Recent Conversation:\n"
+            "---------------------\n"
+            f"{message_history}\n\n"
+
+            "Relevant Transcript Context:\n"
             "---------------------\n"
             f"{context}\n\n"
-            "---------------------\n\n"
-            f"User Question:\n{query}"
+
+            "Current User Question:\n"
+            "---------------------\n"
+            f"{query}"
         )

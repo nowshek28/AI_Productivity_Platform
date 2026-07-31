@@ -5,6 +5,7 @@ from uuid import UUID
 from app.services.retrieval.schemas import RetrievedChunk, ChatResponse, SearchResponse
 from app.services.builder.context_builder import ContextBuilder
 from app.services.builder.prompt_builder import PromptBuilder
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,13 @@ class RetrievalService:
             vector_store,
             cross_encoder_service,
             llm_service,
+            session_service
             ):
         self.embedding_service = embedding_service
         self.vector_store = vector_store
         self.cross_encoder_service = cross_encoder_service
         self.llm_service = llm_service
-
+        self.session_service = session_service
         
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
@@ -32,6 +34,7 @@ class RetrievalService:
             query: str,
             transcript_id: UUID | None = None,
             user_id: UUID | None = None,
+            session_id: UUID | None = None,
             retrieve_top_k: int = 20,
             rerank_top_k: int = 5
     ) -> str:
@@ -62,10 +65,41 @@ class RetrievalService:
             # Build context from the retrieved chunks
             context = self.context_builder.build(chunks, transcript_id=transcript_id, user_id=user_id)
             logger.info(f"Context built successfully................")
+
+            # summary Context for the LLM
+            summary = self.session_service.get_summary_by_session_id(
+                session_id=session_id, 
+                user_id=user_id
+            ) if session_id else None
+
+            if summary:
+                logger.info(f"Summary found for session {session_id}.")
+            else:
+                logger.info(f"No summary found for session {session_id}. Proceeding without summary.")
+                summary = None  # Ensure summary is None if not found
+
+            # last N message context for the LLM
+            last_n_messages = self.chatmessage_service.get_last_n_messages(
+                session_id=session_id, 
+                user_id=user_id, 
+                n=settings.CHAT_RECENT_MESSAGE_LIMIT
+            ) if session_id else None
+
+            if last_n_messages:
+                logger.info(f"Retrieved {len(last_n_messages)} recent messages for session {session_id}.")
+                messages_history = self._format_messages(
+                    messages=[message.dict() for message in last_n_messages]
+                )
+            else:
+                logger.info(f"No recent messages found for session {session_id}. Proceeding without recent messages.")
+                messages_history = None  # Ensure messages_history is None if not found
+
             # Build prompt for the LLM using the query and context
             messages = self.prompt_builder.build(
                 query=query,
                 context=context,
+                summary=summary,  # You can pass a summary if available
+                message_history=messages_history if last_n_messages else None  # You can pass message history if available
             )
 
             # Generate response from the LLM based on the prompt
@@ -169,3 +203,15 @@ class RetrievalService:
             }
 
         return where or None
+
+    def _format_messages(
+        self,
+        messages: list[dict],
+    ) -> str:
+        # Implement the logic to format messages as needed
+        formatted_messages = ""
+        for message in messages:
+            role = message.get("role")
+            content = message.get("content")
+            formatted_messages += f"{role.capitalize()}:\n{content}\n\n"
+        return formatted_messages

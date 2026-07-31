@@ -218,6 +218,7 @@ async def chat_in_session(
         query=User_query.query,
         transcript_id=transcript.id,
         user_id=current_user.id,
+        session_id=session_id,
         retrieve_top_k = settings.RETRIEVE_TOP_K,
         rerank_top_k=User_query.top_k
     )

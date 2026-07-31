@@ -22,6 +22,7 @@ router = APIRouter()
 )
 async def search_transcript(
     transcript_id: UUID,
+    session_id: UUID,
     query: SearchRequest,
     retrieval_service=Depends(get_retrieval_service),
     transcript_service=Depends(get_transcript_service),
@@ -51,6 +52,7 @@ async def search_transcript(
         query=query.query,
         transcript_id=transcript.id,
         user_id=current_user.id,
+        session_id=session_id,
         retrieve_top_k = settings.RETRIEVE_TOP_K,
         rerank_top_k=query.top_k
     )
