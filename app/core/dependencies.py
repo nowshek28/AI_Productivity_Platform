@@ -84,17 +84,44 @@ def get_vector_store_service():
 def get_llm_service():
     return llm_service
 
+def get_session_repository(
+    db=Depends(get_db),
+):
+    return SessionRepository(db)
+
+def get_session_service(
+    session_repository=Depends(get_session_repository),
+    transcript_repository=Depends(get_transcript_repository),
+):
+    return SessionService(
+        session_repository, 
+        transcript_repository
+)
+def get_chat_message_repository(
+    db=Depends(get_db),
+):
+    return ChatMessageRepository(db)
+
+def get_chat_message_service(
+    chat_message_repository=Depends(get_chat_message_repository),
+):
+    return ChatMessageService(chat_message_repository)
+
 def get_retrieval_service(
     embedding_service=Depends(get_embedding_service),
     vector_store_service=Depends(get_vector_store_service),
     cross_encoder_service=Depends(get_cross_encoder_service),
-    llm_service=Depends(get_llm_service)
+    llm_service=Depends(get_llm_service),
+    session_service=Depends(get_session_service),
+    chatmessage_service=Depends(get_chat_message_service)
 ):
     return RetrievalService(
         embedding_service=embedding_service,
         vector_store=vector_store_service,
         cross_encoder_service=cross_encoder_service,
         llm_service=llm_service,
+        session_service=session_service,
+        chatmessage_service=chatmessage_service
     )
 
 def get_chroma_client():

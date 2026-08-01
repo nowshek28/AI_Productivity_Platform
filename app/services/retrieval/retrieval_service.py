@@ -18,13 +18,15 @@ class RetrievalService:
             vector_store,
             cross_encoder_service,
             llm_service,
-            session_service
-            ):
+            session_service,
+            chatmessage_service,
+    ):
         self.embedding_service = embedding_service
         self.vector_store = vector_store
         self.cross_encoder_service = cross_encoder_service
         self.llm_service = llm_service
         self.session_service = session_service
+        self.chatmessage_service = chatmessage_service
         
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
@@ -80,8 +82,7 @@ class RetrievalService:
 
             # last N message context for the LLM
             last_n_messages = self.chatmessage_service.get_last_n_messages(
-                session_id=session_id, 
-                user_id=user_id, 
+                session_id=session_id,
                 n=settings.CHAT_RECENT_MESSAGE_LIMIT
             ) if session_id else None
 
