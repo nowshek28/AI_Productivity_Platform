@@ -1,6 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey
+from sqlalchemy import Boolean, ForeignKey, Text
 from sqlalchemy import DateTime
-from sqlalchemy import String, Integer
+from sqlalchemy import String, Integer, Float, JSON
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm import mapped_column
 from uuid import uuid4
@@ -199,6 +199,13 @@ class TranscriptModel(Base):
         back_populates="transcript"
     )
 
+    analysis: Mapped["TranscriptAnalysisModel | None"] = relationship(
+        "TranscriptAnalysisModel",
+        back_populates="transcript",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
 class SessionModel(Base):
     __tablename__ = "sessions"
 
@@ -264,7 +271,10 @@ class ChatMessageModel(Base):
     )
 
     session_id: Mapped[str] = mapped_column(
-        ForeignKey("sessions.id"),
+        ForeignKey(
+            "sessions.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
@@ -286,4 +296,80 @@ class ChatMessageModel(Base):
     session: Mapped["SessionModel"] = relationship(
         "SessionModel",
         back_populates="chat_messages"
+    )
+
+class TranscriptAnalysisModel(Base):
+    __tablename__ = "transcript_analysis"
+
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid4())
+    )
+
+    transcript_id: Mapped[str] = mapped_column(
+        ForeignKey(
+            "transcripts.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False,
+        unique=True
+    )
+
+    summary: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    sentiment: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    sentiment_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    keywords: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    entities: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    action_items: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    analysis_metadata: Mapped[dict | None] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=True
+    )
+
+    status = mapped_column(
+        String,
+        default="PENDING",
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utcnow
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utcnow,
+        onupdate=_utcnow
+    )
+
+    transcript: Mapped["TranscriptModel"] = relationship(
+        "TranscriptModel",
+        back_populates="analysis"
     )
