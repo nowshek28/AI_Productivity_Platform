@@ -116,6 +116,27 @@ class TranscriptAnalysisService:
 
         return self._to_response(transcript_analysis_model)
 
+    def update_status(
+        self,
+        *,
+        transcript_analysis_id: UUID,
+        status: str
+    ) -> TranscriptAnalysisResponse:
+        """
+        Update the status of an existing transcript analysis.
+        """
+        transcript_analysis_model = self.transcript_analysis_repository.update_status(
+            transcript_analysis_id=transcript_analysis_id,
+            status=status
+        )
+
+        if transcript_analysis_model is None:
+            logger.exception(f"Transcript analysis with ID {transcript_analysis_id} not found for status update.")
+            return None
+
+        return self._to_response(transcript_analysis_model)
+
+    
     def delete(
         self,
         *,
